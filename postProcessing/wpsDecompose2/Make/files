@@ -1,0 +1,2 @@
+wpsDecompose2.C
+EXE = $(FOAM_USER_APPBIN)/wpsDecompose2
