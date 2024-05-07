@@ -116,12 +116,13 @@ fileName outputDir = mesh.time().path()/"postProcessing/forceDecomposition";
 mkDir(outputDir);
 autoPtr<OFstream> outputFilePtr;
 outputFilePtr.reset(new OFstream(outputDir/"wpsDecomposition.dat"));
-outputFilePtr() << "# Time  total_force_x(V2)   total_force_y(V3)   total_force_z(V4)   \
-viscous_force_x(V5)    viscous_force_y(V6)    viscous_force_z(V7)   \
-Qcitation_force_x(V8)   Qcitation_force_y(V9)   Qcitation_force_z(V10)    \
-acceleration_force_x(V11)   acceleration_force_y(V12)   acceleration_force_y(V13)   \
-Qcitation_force_x2(V14)   Qcitation_force_y2(V15)   Qcitation_force_z2(V16)    \
-acceleration_force_x2(V17)   acceleration_force_y2(V18)   acceleration_force_y2(V19)" << endl;
+outputFilePtr() << "# Time    total_force_x(V2) total_force_y(V3) total_force_z(V4)    \
+viscous_force_x(V5) viscous_force_y(V6) viscous_force_z(V7)    \
+Qcitation_force_x(V8) Qcitation_force_y(V9) Qcitation_force_z(V10)    \
+viscous_pressure_force_x(V11) viscous_pressure_force_y(V12) viscous_pressure_force_z(V13)" << "\n" << \
+"#         acceleration_force_x(V14) acceleration_force_y(V15) acceleration_force_y(V16)    \
+viscous_pressure_force_x2(V17) viscous_pressure_force_y2(V18 viscous_pressure_force_z2(V19)    \
+acceleration_force_x2(V20) acceleration_force_y2(V21) acceleration_force_y2(V22)" << "\n" << endl;
 
 // 读取不同时刻文件下的场量进行WPS受力分解
 instantList timeDirs = timeSelector::select0(runTime, args);

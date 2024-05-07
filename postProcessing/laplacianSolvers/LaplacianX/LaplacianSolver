@@ -1,0 +1,33 @@
+#!/bin/sh
+#------------------------------------------------------------------------------
+
+solverend=30
+filepath="/home/data3/lxguang/OpenFOAMTutorials/dynamicMesh/forceDecomposition/WingCylinderRe2000Heaving2D-F"
+
+#------------------------------------------------------------------------------
+
+#for folderpath in $filepath/[4-5]*
+for folderpath in $filepath/3*
+do
+    #if test -f $folderpath
+    #then
+    #    echo $folderpath 是文件
+    #fi
+    if test -d $folderpath
+    then
+        #echo $folderpath 是目录
+        ./Allclean
+        meshpath=$filepath/constant/polyMesh
+        pointspath=$folderpath/polyMesh/points
+        cp -r -f $meshpath constant/
+        cp -f $pointspath constant/polyMesh/
+        cp -f $filepath/system/decomposeParDict system/
+        echo "Laplacian solver begin for $folderpath"
+        ./Allrun
+        cp -f $solverend/T $folderpath/Tx
+        echo "Laplacian solver end   for $folderpath"
+    fi
+done
+rm -rf processor*
+
+#------------------------------------------------------------------------------
