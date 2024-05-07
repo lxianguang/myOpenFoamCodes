@@ -31,6 +31,7 @@ Group
 
 Description
     the weighted pressure source force decomposition (WPS) for a single wall boundary (single connected computational domain)
+    this code is used to verify the convergence of the integration region
 
 \*---------------------------------------------------------------------------*/
 
@@ -46,85 +47,113 @@ using namespace Foam;
 
 int main(int argc, char *argv[])
 {
+    // 准备参数列表
+    argList::noParallel();
+    argList::validArgs.append("boundaryName");
+    argList::validArgs.append("wpsRunTime");
+    argList::validArgs.append("wpsXLable0");
+    argList::validArgs.append("wpsXLable1");
+    argList::validArgs.append("wpsXLable2");
 
-// 准备参数列表
-argList::noParallel();
-argList::validArgs.append("boundaryName");
+    // 准备选项
+    argList::addOption // string variable
+        (
+            "boundaryName",
+            "char",
+            "provide the name of boundary for the WPS theory decomposition"
+        );
 
-// 准备选项
-argList::addOption // string variable
-    (
-        "boundaryName",
-        "char",
-        "provide the name of boundary for the WPS theory decomposition"
+    argList::addOption // scalar variable
+        (
+            "wpsRunTime",
+            "time",
+            "provide the time for the WPS theory decomposition");
+
+    argList::addOption // scalar variable
+        (
+            "wpsXLable0",
+            "coordinate",
+            "provide the first x coordinate of the integration region");
+
+    argList::addOption // scalar variable
+        (
+            "wpsXLable1",
+            "coordinate",
+            "provide the x coordinate interval of the integration region");
+
+    argList::addOption // scalar variable
+        (
+            "wpsXLable2",
+            "coordinate",
+            "provide the last x coordinate of the integration region");
+
+    // 创建参数列表，通常已经在在 setRootCase.H 定义，所以要注释
+    Foam::argList args(argc, argv);
+    if (!args.checkRootCase())
+    {
+        Foam::FatalError.exit();
+    }
+
+    // 读取参数
+    const word boundaryName = args[1];         // 读取固壁边界名称
+    const scalar wpsRunTime = args.get<scalar>(2);
+    const scalar wpsXLable0 = args.get<scalar>(3);
+    const scalar wpsXLable1 = args.get<scalar>(4);
+    const scalar wpsXLable2 = args.get<scalar>(5);
+
+    //#include "setRootCase.H"
+    #include "createTime.H"
+    #include "createMesh.H"    
+
+    // 从transportProperties文件中读取数据
+    // 先定义一个IOdictionary对象，其构造函数参数为一个IOobject对象
+    IOdictionary transportProperties(
+        IOobject(
+            "transportProperties",              // 字典文件名
+            runTime.constant(),                 // 字典文件所在路径，这里为constant文件夹下
+            mesh,                               // 一个objectRegistry类对象，这里没什么用
+            IOobject::MUST_READ_IF_MODIFIED,    // 如果文件被修改，则必须重新读取
+            IOobject::NO_WRITE                  // 表示文件为只读
+        )
     );
-// 创建参数列表，通常已经在在 setRootCase.H 定义，所以要注释
-Foam::argList args(argc, argv);
-if (!args.checkRootCase())
-{
-    Foam::FatalError.exit();
-}
+    Info << "loading data in transportProperties" << endl;
 
-// 读取参数
-const word boundaryName = args[1];         // 读取固壁边界名称
+    // 定义一个dimensionedScalar变量nu
+    // nu有量纲，其量纲dimViscosity等同于(0,2,-1,0,0,0,0),单位为m2/s
+    dimensionedScalar nu(
+        "nu",                                   // 指定名称
+        dimViscosity,                           // 指定scalar的量纲   
+        transportProperties                     // com新版本写法，自动根据名称在字典中搜索
+    );
+    Info << "loading viscosity value: " << nu << endl;
 
-//#include "setRootCase.H"
-#include "createTime.H"
-#include "createMesh.H"    
+    dimensionedScalar rho(
+        "rho",
+        dimDensity,
+        transportProperties
+    );
+    Info << "loading density value: " << rho << endl;
 
-// 从transportProperties文件中读取数据
-// 先定义一个IOdictionary对象，其构造函数参数为一个IOobject对象
-IOdictionary transportProperties(
-    IOobject(
-        "transportProperties",              // 字典文件名
-        runTime.constant(),                 // 字典文件所在路径，这里为constant文件夹下
-        mesh,                               // 一个objectRegistry类对象，这里没什么用
-        IOobject::MUST_READ_IF_MODIFIED,    // 如果文件被修改，则必须重新读取
-        IOobject::NO_WRITE                  // 表示文件为只读
-    )
-);
-Info << "loading data in transportProperties" << endl;
+    // 创建输出文件
+    fileName outputDir = mesh.time().path()/"postProcessing/forceDecomposition";
+    mkDir(outputDir);
+    autoPtr<OFstream> outputFilePtr;
+    outputFilePtr.reset(new OFstream(outputDir/"wpsConvergence.dat"));
+    outputFilePtr() << "# Force decomposition at time : " << wpsRunTime << endl;
+    outputFilePtr() << "# The x coordinate range of the integration region is : \
+    (" << wpsXLable0 << " : " << wpsXLable1 << " : " << wpsXLable2 << ")" << endl;
+    outputFilePtr() << "# x_coordinate    total_force_x(V2) total_force_y(V3) total_force_z(V4)    \
+    Qcitation_force_x(V5) Qcitation_force_y(V6) Qcitation_force_z(V7)" << "\n" << endl;
 
-// 定义一个dimensionedScalar变量nu
-// nu有量纲，其量纲dimViscosity等同于(0,2,-1,0,0,0,0),单位为m2/s
-dimensionedScalar nu(
-    "nu",                                   // 指定名称
-    dimViscosity,                           // 指定scalar的量纲   
-    transportProperties                     // com新版本写法，自动根据名称在字典中搜索
-);
-Info << "loading viscosity value: " << nu << endl;
-
-dimensionedScalar rho(
-    "rho",
-    dimDensity,
-    transportProperties
-);
-Info << "loading density value: " << rho << endl;
-
-// 创建输出文件
-fileName outputDir = mesh.time().path()/"postProcessing/forceDecomposition";
-mkDir(outputDir);
-autoPtr<OFstream> outputFilePtr;
-outputFilePtr.reset(new OFstream(outputDir/"wpsDecomposition.dat"));
-outputFilePtr() << "# Time    total_force_x(V2) total_force_y(V3) total_force_z(V4)    \
-viscous_force_x(V5) viscous_force_y(V6) viscous_force_z(V7)    \
-Qcitation_force_x(V8) Qcitation_force_y(V9) Qcitation_force_z(V10)    \
-viscous_pressure_force_x(V11) viscous_pressure_force_y(V12) viscous_pressure_force_z(V13)    \
-acceleration_force_x(V14) acceleration_force_y(V15) acceleration_force_y(V16)" << "\n" << endl;
-
-// 读取不同时刻文件下的场量进行WPS受力分解
-instantList timeDirs = timeSelector::select0(runTime, args);
-forAll(timeDirs, timeI)
-{
-    runTime.setTime(timeDirs[timeI], timeI);
-    mesh.readUpdate();                          // Check for new mesh
-    Info<< "Time = " << runTime.timeName() << endl;
+    // 读取指定时刻文件下的场量进行WPS受力分解
+    mesh.readUpdate();                          // 更新网格
+    Info<< "Time = " << wpsRunTime << endl;
 
     // 读取标量场，不需要查找关键字
     volScalarField Q(                           // 定义一个标量场，无需指定量纲，因为其量纲已经在相应的文件中指定了
         IOobject(
             "Q",                                // 指定名称
-            runTime.timeName(),                 // 获取当前时间
+            runTime.timeName(wpsRunTime),       // 获取当前时间
             mesh,
             IOobject::MUST_READ,
             IOobject::AUTO_WRITE
@@ -136,7 +165,7 @@ forAll(timeDirs, timeI)
     volScalarField Phix(
         IOobject(
             "Tx",
-            runTime.timeName(),
+            runTime.timeName(wpsRunTime),
             mesh,
             IOobject::MUST_READ,
             IOobject::AUTO_WRITE
@@ -147,7 +176,7 @@ forAll(timeDirs, timeI)
     volScalarField Phiy(
         IOobject(
             "Ty",
-            runTime.timeName(),
+            runTime.timeName(wpsRunTime),
             mesh,
             IOobject::MUST_READ,
             IOobject::AUTO_WRITE
@@ -158,7 +187,7 @@ forAll(timeDirs, timeI)
     volScalarField Phiz(
         IOobject(
             "Tz",
-            runTime.timeName(),
+            runTime.timeName(wpsRunTime),
             mesh,
             IOobject::MUST_READ,
             IOobject::AUTO_WRITE
@@ -171,7 +200,7 @@ forAll(timeDirs, timeI)
     volVectorField acceleration(
         IOobject(
             "ddt(U)",
-            runTime.timeName(),
+            runTime.timeName(wpsRunTime),
             mesh,
             IOobject::MUST_READ,
             IOobject::AUTO_WRITE
@@ -183,7 +212,7 @@ forAll(timeDirs, timeI)
     volVectorField omega(
         IOobject(
             "vorticity",
-            runTime.timeName(),
+            runTime.timeName(wpsRunTime),
             mesh,
             IOobject::MUST_READ,
             IOobject::AUTO_WRITE
@@ -191,28 +220,6 @@ forAll(timeDirs, timeI)
         mesh
     );
     Info << "loading vorticity field" << endl;
-
-    // 创建体积分mask
-    /*scalarField volMask = mesh.V();
-    for (label cellI = 0; cellI < mesh.C().size(); cellI++){
-        if (abs(mesh.C()[cellI].component(0)) <= 3 && abs(mesh.C()[cellI].component(1)) <= 3 && abs(mesh.C()[cellI].component(2)) <= 1){
-            volMask[cellI] = mesh.V()[cellI];
-        }
-        else{
-            volMask[cellI] = 0.0;
-        }
-    }*/
-    
-    // 流场体积分计算涡力
-    const scalarField field_f_Q_x = 2 * rho.value() * Phix.field() * Q.field();
-    const scalarField field_f_Q_y = 2 * rho.value() * Phiy.field() * Q.field();
-    const scalarField field_f_Q_z = 2 * rho.value() * Phiz.field() * Q.field();
-    const scalar value_f_Q_x = gSum(mesh.V() * field_f_Q_x);
-    const scalar value_f_Q_y = gSum(mesh.V() * field_f_Q_y);
-    const scalar value_f_Q_z = gSum(mesh.V() * field_f_Q_z);
-    Info << "Vortex force in x direction value: " << value_f_Q_x << endl;
-    Info << "Vortex force in y direction value: " << value_f_Q_y << endl;
-    Info << "Vortex force in z direction value: " << value_f_Q_z << endl;
 
     // 获取固体物面信息
     polyPatchID topPatch(boundaryName, mesh.boundaryMesh());
@@ -231,7 +238,7 @@ forAll(timeDirs, timeI)
     const scalarField surfacePhix   = Phix.boundaryField()[patchID];    // 壁面Phi值
     const scalarField surfacePhiy   = Phiy.boundaryField()[patchID];
     const scalarField surfacePhiz   = Phiz.boundaryField()[patchID];
-    
+
     // 物面积分计算摩擦力
     const vectorField field_f_V   = rho.value() * nu.value() * (surfaceOmega ^ surfaceNormal);
     const scalarField field_f_V_x = surfaceArea * field_f_V.component(0); 
@@ -269,30 +276,45 @@ forAll(timeDirs, timeI)
     Info << "Acceleration force in y direction value: " << value_f_A_y << endl;
     Info << "Acceleration force in z direction value: " << value_f_A_z << endl;
 
-    // 计算合力
-    const scalar force_t_x = value_f_Q_x + value_f_VP_x + value_f_A_x + value_f_V_x;
-    const scalar force_t_y = value_f_Q_y + value_f_VP_y + value_f_A_y + value_f_V_y;
-    const scalar force_t_z = value_f_Q_z + value_f_VP_z + value_f_A_z + value_f_V_z;
 
-    // 输出数据
-    outputFilePtr() << runTime.timeName() << "\t";
-    outputFilePtr() << force_t_x    << " ";
-    outputFilePtr() << force_t_y    << " ";
-    outputFilePtr() << force_t_z    << "\t";
-    outputFilePtr() << value_f_V_x  << " ";
-    outputFilePtr() << value_f_V_y  << " ";
-    outputFilePtr() << value_f_V_z  << "\t";
-    outputFilePtr() << value_f_Q_x  << " ";
-    outputFilePtr() << value_f_Q_y  << " ";
-    outputFilePtr() << value_f_Q_z  << "\t";
-    outputFilePtr() << value_f_VP_x << " ";
-    outputFilePtr() << value_f_VP_y << " ";
-    outputFilePtr() << value_f_VP_z << "\t";
-    outputFilePtr() << value_f_A_x  << " ";
-    outputFilePtr() << value_f_A_y  << " ";
-    outputFilePtr() << value_f_A_z  << endl;
-}
+    for( scalar xlable = wpsXLable0; xlable <= wpsXLable2; xlable = xlable + wpsXLable1 )
+    {
+        // 流场体积分计算涡力
+        scalarField field_f_Q_x = 2 * rho.value() * Phix.field() * Q.field();
+        scalarField field_f_Q_y = 2 * rho.value() * Phiy.field() * Q.field();
+        scalarField field_f_Q_z = 2 * rho.value() * Phiz.field() * Q.field();
 
-return 0;
+        // 控制积分范围
+        for (label cellI = 0; cellI < mesh.C().size(); cellI++){
+            if (mesh.C()[cellI].component(0) > xlable){
+                field_f_Q_x[cellI] = 0.0;
+                field_f_Q_y[cellI] = 0.0;
+                field_f_Q_z[cellI] = 0.0;
+            }
+        }
 
+        const scalar value_f_Q_x = gSum(mesh.V() * field_f_Q_x);
+        const scalar value_f_Q_y = gSum(mesh.V() * field_f_Q_y);
+        const scalar value_f_Q_z = gSum(mesh.V() * field_f_Q_z);
+        Info << "the max integral x coordinate = " << xlable << endl;
+        Info << "Vortex force in x direction value: " << value_f_Q_x << endl;
+        Info << "Vortex force in y direction value: " << value_f_Q_y << endl;
+        Info << "Vortex force in z direction value: " << value_f_Q_z << endl;
+
+        // 计算合力
+        const scalar force_t_x = value_f_Q_x + value_f_VP_x + value_f_A_x + value_f_V_x;
+        const scalar force_t_y = value_f_Q_y + value_f_VP_y + value_f_A_y + value_f_V_y;
+        const scalar force_t_z = value_f_Q_z + value_f_VP_z + value_f_A_z + value_f_V_z;
+
+        // 输出数据
+        outputFilePtr() << xlable       << "\t";
+        outputFilePtr() << force_t_x    << " ";
+        outputFilePtr() << force_t_y    << " ";
+        outputFilePtr() << force_t_z    << "\t";
+        outputFilePtr() << value_f_Q_x  << " ";
+        outputFilePtr() << value_f_Q_y  << " ";
+        outputFilePtr() << value_f_Q_z  << endl;
+    }
+    //Info << boundaryName << "\n" << wpsRunTime << "\n" << wpsXLable0 << "\n" << wpsXLable1 << "\n" << wpsXLable2 << endl;
+    return 0;
 }
