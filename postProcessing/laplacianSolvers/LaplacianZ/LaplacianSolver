@@ -28,6 +28,6 @@ do
         echo "Laplacian solver end   for $folderpath"
     fi
 done
-rm -rf processor*
+rm -rf processor* nohup.out
 
 #------------------------------------------------------------------------------

@@ -147,7 +147,7 @@ int main(int argc, char *argv[])
 
     // 读取指定时刻文件下的场量进行WPS受力分解
     mesh.readUpdate();                          // 更新网格
-    Info<< "Time = " << wpsRunTime << endl;
+    Info<< "force decomposition time : " << wpsRunTime << endl;
 
     // 读取标量场，不需要查找关键字
     volScalarField Q(                           // 定义一个标量场，无需指定量纲，因为其量纲已经在相应的文件中指定了
