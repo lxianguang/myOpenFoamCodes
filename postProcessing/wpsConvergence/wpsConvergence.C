@@ -51,9 +51,9 @@ int main(int argc, char *argv[])
     argList::noParallel();
     argList::validArgs.append("boundaryName");
     argList::validArgs.append("wpsRunTime");
-    argList::validArgs.append("wpsXLable0");
-    argList::validArgs.append("wpsXLable1");
-    argList::validArgs.append("wpsXLable2");
+    argList::validArgs.append("deltaX");
+    //argList::validArgs.append("wpsXLable1");
+    //argList::validArgs.append("wpsXLable2");
 
     // 准备选项
     argList::addOption // string variable
@@ -71,21 +71,21 @@ int main(int argc, char *argv[])
 
     argList::addOption // scalar variable
         (
+            "deltaX",
+            "interval",
+            "provide the x coordinate interval of the integration region");
+
+    /*argList::addOption // scalar variable
+        (
             "wpsXLable0",
             "coordinate",
             "provide the first x coordinate of the integration region");
 
     argList::addOption // scalar variable
         (
-            "wpsXLable1",
-            "coordinate",
-            "provide the x coordinate interval of the integration region");
-
-    argList::addOption // scalar variable
-        (
             "wpsXLable2",
             "coordinate",
-            "provide the last x coordinate of the integration region");
+            "provide the last x coordinate of the integration region");*/
 
     // 创建参数列表，通常已经在在 setRootCase.H 定义，所以要注释
     Foam::argList args(argc, argv);
@@ -97,9 +97,9 @@ int main(int argc, char *argv[])
     // 读取参数
     const word boundaryName = args[1];         // 读取固壁边界名称
     const scalar wpsRunTime = args.get<scalar>(2);
-    const scalar wpsXLable0 = args.get<scalar>(3);
-    const scalar wpsXLable1 = args.get<scalar>(4);
-    const scalar wpsXLable2 = args.get<scalar>(5);
+    const scalar deltaX = args.get<scalar>(3);
+    //const scalar wpsXLable1 = args.get<scalar>(4);
+    //const scalar wpsXLable2 = args.get<scalar>(5);
 
     //#include "setRootCase.H"
     #include "createTime.H"
@@ -133,17 +133,6 @@ int main(int argc, char *argv[])
         transportProperties
     );
     Info << "loading density value: " << rho << endl;
-
-    // 创建输出文件
-    fileName outputDir = mesh.time().path()/"postProcessing/forceDecomposition";
-    mkDir(outputDir);
-    autoPtr<OFstream> outputFilePtr;
-    outputFilePtr.reset(new OFstream(outputDir/"wpsConvergence.dat"));
-    outputFilePtr() << "# Force decomposition at time : " << wpsRunTime << endl;
-    outputFilePtr() << "# The x coordinate range of the integration region is : \
-    (" << wpsXLable0 << " : " << wpsXLable1 << " : " << wpsXLable2 << ")" << endl;
-    outputFilePtr() << "# x_coordinate    total_force_x(V2) total_force_y(V3) total_force_z(V4)    \
-    Qcitation_force_x(V5) Qcitation_force_y(V6) Qcitation_force_z(V7)" << "\n" << endl;
 
     // 读取指定时刻文件下的场量进行WPS受力分解
     mesh.readUpdate();                          // 更新网格
@@ -276,8 +265,22 @@ int main(int argc, char *argv[])
     Info << "Acceleration force in y direction value: " << value_f_A_y << endl;
     Info << "Acceleration force in z direction value: " << value_f_A_z << endl;
 
+    // 获取网格横向坐标范围
+    const scalar xLableMin = min(mesh.points().component(0));
+    const scalar xLableMax = max(mesh.points().component(0));
 
-    for( scalar xlable = wpsXLable0; xlable <= wpsXLable2; xlable = xlable + wpsXLable1 )
+    // 创建输出文件
+    fileName outputDir = mesh.time().path()/"postProcessing/forceDecomposition";
+    mkDir(outputDir);
+    autoPtr<OFstream> outputFilePtr;
+    outputFilePtr.reset(new OFstream(outputDir/"wpsConvergence.dat"));
+    outputFilePtr() << "# Force decomposition at time : " << wpsRunTime << endl;
+    outputFilePtr() << "# The x coordinate range of the integration region is : \
+    (" << xLableMin << " : " << deltaX << " : " << xLableMax << ")" << endl;
+    outputFilePtr() << "# x_coordinate    total_force_x(V2) total_force_y(V3) total_force_z(V4)    \
+    Qcitation_force_x(V5) Qcitation_force_y(V6) Qcitation_force_z(V7)" << "\n" << endl;
+
+    for( scalar xlable = xLableMin; xlable <= xLableMax; xlable = xlable + deltaX )
     {
         // 流场体积分计算涡力
         scalarField field_f_Q_x = 2 * rho.value() * Phix.field() * Q.field();

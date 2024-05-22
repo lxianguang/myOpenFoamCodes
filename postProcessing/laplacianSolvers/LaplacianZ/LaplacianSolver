@@ -1,7 +1,7 @@
 #!/bin/sh
 #------------------------------------------------------------------------------
 
-solverend=30
+solverend=20
 filepath="/home/data3/lxguang/OpenFOAMTutorials/dynamicMesh/forceDecomposition/WingCylinderRe2000Heaving2D-F"
 
 #------------------------------------------------------------------------------
