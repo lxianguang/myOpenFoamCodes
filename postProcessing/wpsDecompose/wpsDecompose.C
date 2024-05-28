@@ -116,7 +116,7 @@ int main(int argc, char *argv[])
     forAll(timeDirs, timeI)
     {
         runTime.setTime(timeDirs[timeI], timeI);
-        mesh.readUpdate();                          // Check for new mesh
+        mesh.readUpdate();                          // 更新网格
         Info<< "Time = " << runTime.timeName() << endl;
 
         // 读取标量场，不需要查找关键字
