@@ -273,12 +273,12 @@ int main(int argc, char *argv[])
     fileName outputDir = mesh.time().path()/"postProcessing/forceDecomposition";
     mkDir(outputDir);
     autoPtr<OFstream> outputFilePtr;
-    outputFilePtr.reset(new OFstream(outputDir/"wpsConvergence.dat"));
+    outputFilePtr.reset(new OFstream(outputDir/"wpsConvergence_" + std::to_string(wpsRunTime).substr(0, 5) + ".dat"));
     outputFilePtr() << "# Force decomposition at time : " << wpsRunTime << endl;
-    outputFilePtr() << "# The x coordinate range of the integration region is : \
-    (" << xLableMin << " : " << deltaX << " : " << xLableMax << ")" << endl;
-    outputFilePtr() << "# x_coordinate    total_force_x(V2) total_force_y(V3) total_force_z(V4)    \
-    Qcitation_force_x(V5) Qcitation_force_y(V6) Qcitation_force_z(V7)" << "\n" << endl;
+    outputFilePtr() << "# The x coordinate range of the integration region is : ";
+    outputFilePtr() << "(" << xLableMin << " : " << deltaX << " : " << xLableMax << ")" << "\n" << endl;
+    outputFilePtr() << "Variables = x_coordinate, total_force_x, total_force_y, total_force_z, ";
+    outputFilePtr() << "Qcitation_force_x, Qcitation_force_y, Qcitation_force_z" << "\n" << endl;
 
     for( scalar xlable = xLableMin; xlable <= xLableMax; xlable = xlable + deltaX )
     {
