@@ -73,9 +73,9 @@ int main(int argc, char *argv[])
     }
 
     // 读取参数
-    const word boundaryName = args[1];         // 读取固壁边界名称
+    const word boundaryName = args[1];           // 读取固壁边界名称
     const scalar gridsInSpanwise = args.get<scalar>(2);
-    
+
     //#include "setRootCase.H"
     #include "createTime.H"
     #include "createMesh.H"    
@@ -109,13 +109,22 @@ int main(int argc, char *argv[])
     );
     Info << "loading density value: " << rho << endl;
 
-    // 获取网格展向坐标范围
-    const scalar zLableMin = min(mesh.points().component(2));
-    const scalar zLableMax = max(mesh.points().component(2));
-    const scalar deltaZ    = (zLableMax - zLableMin)/gridsInSpanwise;
-
     // 读取文件夹内时间刻列表
     instantList timeDirs = timeSelector::select0(runTime, args);
+
+    // 读取固面名称
+    polyPatchID topPatch(boundaryName, mesh.boundaryMesh());
+    if (!topPatch.active())
+    {
+        FatalError
+            << "Patch name " << boundaryName << " not found."
+            << abort(FatalError);
+    }
+    label patchID = topPatch.index();
+
+    const scalar zLableMin = min(mesh.boundary()[patchID].Cf().component(2));
+    const scalar zLableMax = max(mesh.boundary()[patchID].Cf().component(2));
+    const scalar deltaZ    = (zLableMax - zLableMin)/(gridsInSpanwise - 1);
 
     // 创建输出文件
     fileName outputDir = mesh.time().path()/"postProcessing/forceDecomposition";
@@ -162,15 +171,7 @@ int main(int argc, char *argv[])
         );
         Info << "loading vorticity field" << endl;
 
-        // 获取固体物面信息
-        polyPatchID topPatch(boundaryName, mesh.boundaryMesh());
-        if (!topPatch.active())
-        {
-            FatalError
-                << "Patch name " << boundaryName << " not found."
-                << abort(FatalError);
-        }
-        label patchID = topPatch.index();
+        // 获取壁面信息
         const surfaceVectorField normal = - mesh.Sf()/mesh.magSf();         // 法向量场(从物面指向流体)
         const surfaceVectorField meshcf = mesh.Cf();                        // 网格面中心坐标
         const surfaceScalarField area   = mesh.magSf();                     // 网格面积场
@@ -180,7 +181,7 @@ int main(int argc, char *argv[])
         const scalarField surfacep      = p.boundaryField()[patchID];       // 壁面压力
         const scalarField surfaceArea   = area.boundaryField()[patchID];    // 壁面网格面积
 
-        for( scalar zlable = zLableMin + 0.5 * deltaZ; zlable <= zLableMax; zlable = zlable + deltaZ )
+        for( scalar zlable = zLableMin; zlable < zLableMax + deltaZ; zlable = zlable + deltaZ )
         {
             // 物面积分计算压强力
             const vectorField field_f_P = - rho.value() * surfacep * surfaceNormal;
