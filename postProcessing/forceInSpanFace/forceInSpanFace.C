@@ -49,7 +49,7 @@ int main(int argc, char *argv[])
     // 准备参数列表
     argList::noParallel();
     argList::validArgs.append("boundaryName");
-    argList::validArgs.append("gridsInSpanwise");
+    argList::validArgs.append("uniformDeltaZ");
 
     // 准备选项
     argList::addOption // string variable
@@ -61,9 +61,9 @@ int main(int argc, char *argv[])
 
     argList::addOption // scalar variable
         (
-            "gridsInSpanwise",
+            "uniformDeltaZ",
             "int",
-            "Number of uniform grids in the spanwise direction");
+            "the uniform grid delta in the spanwise direction");
 
     // 创建参数列表，通常已经在在 setRootCase.H 定义，所以要注释
     Foam::argList args(argc, argv);
@@ -74,7 +74,7 @@ int main(int argc, char *argv[])
 
     // 读取参数
     const word boundaryName = args[1];           // 读取固壁边界名称
-    const scalar gridsInSpanwise = args.get<scalar>(2);
+    const scalar uniformDeltaZ = args.get<scalar>(2);
 
     //#include "setRootCase.H"
     #include "createTime.H"
@@ -124,7 +124,7 @@ int main(int argc, char *argv[])
 
     const scalar zLableMin = min(mesh.boundary()[patchID].Cf().component(2));
     const scalar zLableMax = max(mesh.boundary()[patchID].Cf().component(2));
-    const scalar deltaZ    = (zLableMax - zLableMin)/(gridsInSpanwise - 1);
+    const scalar gridsInSpanwise = ceil((zLableMax - zLableMin)/uniformDeltaZ);
 
     // 创建输出文件
     fileName outputDir = mesh.time().path()/"postProcessing/forceDecomposition";
@@ -133,11 +133,11 @@ int main(int argc, char *argv[])
     outputFilePtr.reset(new OFstream(outputDir/"forceInSpanwise.dat"));
     outputFilePtr() << "# Force decomposition at boundary : " << boundaryName << endl;
     outputFilePtr() << "# The z coordinate range of the integration region is : ";
-    outputFilePtr() << "(" << zLableMin << " : " << deltaZ << " : " << zLableMax << ")" << "\n" << endl;
+    outputFilePtr() << "(" << zLableMin << " : " << uniformDeltaZ << " : " << zLableMax << ")" << "\n" << endl;
     outputFilePtr() << "Variables = t, z, total_force_x, total_force_y, total_force_z, ";
     outputFilePtr() << "pressure_force_x, pressure_force_y, pressure_force_z, ";
     outputFilePtr() << "viscous_force_x, viscous_force_y, viscous_force_z" << endl;
-    outputFilePtr() << "Zone I = " << int(gridsInSpanwise) <<", J = "<< timeDirs.size() << ", f = point" << "\n" << endl;
+    outputFilePtr() << "Zone I = " << gridsInSpanwise <<", J = "<< timeDirs.size() << ", f = point" << "\n" << endl;
 
     forAll(timeDirs, timeI)
     {
@@ -181,7 +181,7 @@ int main(int argc, char *argv[])
         const scalarField surfacep      = p.boundaryField()[patchID];       // 壁面压力
         const scalarField surfaceArea   = area.boundaryField()[patchID];    // 壁面网格面积
 
-        for( scalar zlable = zLableMin; zlable < zLableMax + deltaZ; zlable = zlable + deltaZ )
+        for( scalar zlable = zLableMin; zlable <= zLableMax; zlable = zlable + uniformDeltaZ )
         {
             // 物面积分计算压强力
             const vectorField field_f_P = - rho.value() * surfacep * surfaceNormal;
@@ -203,7 +203,7 @@ int main(int argc, char *argv[])
 
            // 控制积分范围
             for (label cellI = 0; cellI <= surfacemeshcf.size(); cellI++){
-                if (fabs(surfacemeshcf[cellI].component(2) - zlable) < 0.25 * deltaZ){
+                if (fabs(surfacemeshcf[cellI].component(2) - zlable) < 0.25 * uniformDeltaZ){
                     value_f_P_x = value_f_P_x + field_f_P_x[cellI];
                     value_f_P_y = value_f_P_y + field_f_P_y[cellI];
                     value_f_P_z = value_f_P_z + field_f_P_z[cellI];
