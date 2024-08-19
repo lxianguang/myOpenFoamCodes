@@ -130,7 +130,7 @@ int main(int argc, char *argv[])
     fileName outputDir = mesh.time().path()/"postProcessing/forceDecomposition";
     mkDir(outputDir);
     autoPtr<OFstream> outputFilePtr;
-    outputFilePtr.reset(new OFstream(outputDir/"forceInSpanwise.dat"));
+    outputFilePtr.reset(new OFstream(outputDir/"forceInSpanwise_" + boundaryName + ".dat"));
     outputFilePtr() << "# Force decomposition at boundary : " << boundaryName << endl;
     outputFilePtr() << "# The z coordinate range of the integration region is : ";
     outputFilePtr() << "(" << zLableMin << " : " << uniformDeltaZ << " : " << zLableMax << ")" << "\n" << endl;
