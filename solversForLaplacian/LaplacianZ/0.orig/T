@@ -23,7 +23,7 @@ boundaryField
     wing
     {
         type            myFixedGradient;
-        direction     (-1 0 0);
+        direction     (0  0 -1);
     }
 
     cylinder
@@ -51,12 +51,13 @@ boundaryField
 
     symBack
     {
-        type empty;
+        type symmetryPlane;
     }
 
     symFront
     {
-        type empty;
+        type            fixedValue;
+        value          uniform 0;
     }
 }
 

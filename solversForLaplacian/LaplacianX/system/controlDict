@@ -22,7 +22,7 @@ startTime       0;
 
 stopAt          endTime;
 
-endTime         20;
+endTime         15;
 
 deltaT          1e-2;
 
@@ -44,25 +44,5 @@ timeFormat      general;
 timePrecision   6;
 
 runTimeModifiable no;
-
-functions
-{
-    probes
-    {
-        type probes;
-
-        libs (sampling);
-
-        probeLocations
-        (
-            (1  0  0)
-        );
-
-        fields
-        (
-            T
-        );
-    }
-}
 
 // ************************************************************************* //

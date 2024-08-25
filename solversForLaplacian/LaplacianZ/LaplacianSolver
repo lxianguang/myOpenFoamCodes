@@ -1,13 +1,12 @@
 #!/bin/sh
 #------------------------------------------------------------------------------
 
-solverend=20
-filepath="/home/data3/lxguang/OpenFOAMTutorials/dynamicMesh/forceDecomposition/WingCylinderRe2000Heaving2D-F"
+solverend=15
+filepath="../../Re150AoA10Theta0"
 
 #------------------------------------------------------------------------------
 
-#for folderpath in $filepath/[4-5]*
-for folderpath in $filepath/3*
+for folderpath in $filepath/[4-5]*
 do
     #if test -f $folderpath
     #then
@@ -24,7 +23,7 @@ do
         cp -f $filepath/system/decomposeParDict system/
         echo "Laplacian solver begin for $folderpath"
         ./Allrun
-        cp -f $solverend/T $folderpath/Ty
+        cp -f $solverend/T $folderpath/Tz
         echo "Laplacian solver end   for $folderpath"
     fi
 done

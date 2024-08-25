@@ -9,59 +9,55 @@ FoamFile
 {
     version     2.0;
     format      ascii;
-    class       dictionary;
-    object      controlDict;
+    class       volScalarField;
+    object      T;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-application     laplacianFoam;
+dimensions      [0 0 0 1 0 0 0];
 
-startFrom       startTime;
+internalField   uniform 0;
 
-startTime       0;
-
-stopAt          endTime;
-
-endTime         20;
-
-deltaT          1e-2;
-
-writeControl    runTime;
-
-writeInterval   1;
-
-purgeWrite      10;
-
-//writeFormat     ascii;
-writeFormat     binary;
-
-writePrecision  8;
-
-writeCompression off;
-
-timeFormat      general;
-
-timePrecision   6;
-
-runTimeModifiable no;
-
-functions
+boundaryField
 {
-    probes
+    wing
     {
-        type probes;
+        type            myFixedGradient;
+        direction     (-1 0 0);
+    }
 
-        libs (sampling);
+    cylinder
+    {
+        type            zeroGradient;
+    }
 
-        probeLocations
-        (
-            (1  0  0)
-        );
+    inlet
+    {
+        type            fixedValue;
+        value          uniform 0;
+    }
 
-        fields
-        (
-            T
-        );
+    outlet
+    {
+        type            fixedValue;
+        value          uniform 0;
+    }
+
+    topAndBottom
+    {
+        type            fixedValue;
+        value          uniform 0;
+    }
+
+    symBack
+    {
+        type symmetryPlane;
+    }
+
+    symFront
+    {
+        type            fixedValue;
+        value          uniform 0;
     }
 }
 

@@ -1,5 +1,8 @@
 {
     "files.associations": {
-        "forceInSpanFace.C": "cpp"
+        "forceInSpanFace.C": "cpp",
+        "wpsDecompose2.C": "cpp",
+        "wpsDecompose.C": "cpp",
+        "wpsConvergence.C": "cpp"
     }
 }
