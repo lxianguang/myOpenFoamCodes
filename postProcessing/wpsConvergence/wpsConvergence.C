@@ -139,22 +139,10 @@ int main(int argc, char *argv[])
     Info<< "force decomposition time : " << wpsRunTime << endl;
 
     // 读取标量场，不需要查找关键字
-    volScalarField Q(                           // 定义一个标量场，无需指定量纲，因为其量纲已经在相应的文件中指定了
+    volScalarField Phix(                        // 定义一个标量场，无需指定量纲，因为其量纲已经在相应的文件中指定了
         IOobject(
-            "Q",                                // 指定名称
-            runTime.timeName(wpsRunTime),       // 获取当前时间
-            mesh,
-            IOobject::MUST_READ,
-            IOobject::AUTO_WRITE
-        ),
-        mesh 
-    );
-    Info << "loading Q citation field" << endl;
-
-    volScalarField Phix(
-        IOobject(
-            "Tx",
-            runTime.timeName(wpsRunTime),
+            "Tx",                               // 指定名称
+            runTime.timeName(),                 // 获取当前时间
             mesh,
             IOobject::MUST_READ,
             IOobject::AUTO_WRITE
@@ -186,10 +174,22 @@ int main(int argc, char *argv[])
     Info << "loading phi field" << endl;
 
     // 读取向量场
+    volVectorField velocity(
+        IOobject(
+            "U",
+            runTime.timeName(),
+            mesh,
+            IOobject::MUST_READ,
+            IOobject::AUTO_WRITE
+            ),
+        mesh
+    );
+    Info << "loading velocity field" << endl;
+
     volVectorField acceleration(
         IOobject(
             "ddt(U)",
-            runTime.timeName(wpsRunTime),
+            runTime.timeName(),
             mesh,
             IOobject::MUST_READ,
             IOobject::AUTO_WRITE
@@ -198,17 +198,10 @@ int main(int argc, char *argv[])
     );
     Info << "loading acceleration field" << endl;
 
-    volVectorField omega(
-        IOobject(
-            "vorticity",
-            runTime.timeName(wpsRunTime),
-            mesh,
-            IOobject::MUST_READ,
-            IOobject::AUTO_WRITE
-            ),
-        mesh
-    );
-    Info << "loading vorticity field" << endl;
+    // 计算涡量和Q准则
+    const volVectorField omega = fvc::curl(velocity);
+    const volTensorField gradU = fvc::grad(velocity);
+    const volScalarField Q     = 0.5*(sqr(tr(gradU)) - tr(((gradU) & (gradU))));
 
     // 获取固体物面信息
     polyPatchID topPatch(boundaryName, mesh.boundaryMesh());
@@ -218,9 +211,13 @@ int main(int argc, char *argv[])
             << "Patch name " << boundaryName << " not found."
             << abort(FatalError);
     }
-    label patchID = topPatch.index();
+
+    // 获取网格信息
     const surfaceVectorField normal = - mesh.Sf()/mesh.magSf();         // 法向量场(从物面指向流体)
     const surfaceScalarField area   = mesh.magSf();                     // 网格面积场
+
+    // 力分解固壁信息提取
+    label patchID = topPatch.index();
     const vectorField surfaceNormal = normal.boundaryField()[patchID];  // 壁面法向量
     const vectorField surfaceOmega  = omega.boundaryField()[patchID];   // 壁面涡量
     const scalarField surfaceArea   = area.boundaryField()[patchID];    // 壁面网格面积

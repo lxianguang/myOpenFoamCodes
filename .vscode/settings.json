@@ -1,0 +1,12 @@
+{
+    "files.associations": {
+        "forceInSpanFace.C": "cpp",
+        "wpsDecompose.C": "cpp",
+        "wpsDecompose2.C": "cpp",
+        "wpsDecomposeX2.C": "cpp",
+        "wpsDecomposeY2.C": "cpp",
+        "wpsDecomposeZ2.C": "cpp",
+        "files": "c",
+        "wpsConvergence.C": "cpp"
+    }
+}
