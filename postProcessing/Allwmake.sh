@@ -1,7 +1,7 @@
 ls -l ./ | awk '{print $NF}' | while read frqcase
 do
   if [ -d ${frqcase} ]; then
-    echo -n "make ${frqcase} ... "
+    echo "make ${frqcase} ... "
     start=$(date +%s)
     cd ${frqcase}
     wmake -j4
