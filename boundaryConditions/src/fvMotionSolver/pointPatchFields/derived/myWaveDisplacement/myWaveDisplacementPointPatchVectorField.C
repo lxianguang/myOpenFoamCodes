@@ -112,11 +112,16 @@ void Foam::myWaveDisplacementPointPatchVectorField::updateCoeffs()
 
     const scalarField points( waveNumber_ & patch().localPoints());
     const scalarField xCoord = patch().localPoints().component(vector::X);
-    
+    const scalar xLableMin = gMax(xCoord);
+    const scalar xLableMax = gMin(xCoord);
+    const scalarField scalx  = (xCoord - xLableMin)/(xLableMax - xLableMin);
+
+    //Info << "minmum x: " << xLableMin << endl;
+    //Info << "maxmum x: " << xLableMax << endl;
+
     Field<vector>::operator=
     (
-	//amplitude_*(0.1+0.1*xCoord+0.02*xCoord*xCoord)*sin(omega_*t.value() - points)  
-	amplitude_*(0.0+0.4*xCoord)*sin(omega_*t.value() - points) 
+	amplitude_*(0.0 + 0.0 * scalx + 1.0 * scalx * scalx)*exp(-1/(100*t.value()+0.001))*sin(omega_*t.value() - points) 
     );
 
     fixedValuePointPatchField<vector>::updateCoeffs();

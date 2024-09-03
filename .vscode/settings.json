@@ -7,6 +7,8 @@
         "wpsDecomposeY2.C": "cpp",
         "wpsDecomposeZ2.C": "cpp",
         "files": "c",
-        "wpsConvergence.C": "cpp"
+        "wpsConvergence.C": "cpp",
+        "myFixedGradientFvPatchScalarField.C": "cpp",
+        "myWaveDisplacementPointPatchVectorField.C": "cpp"
     }
 }
