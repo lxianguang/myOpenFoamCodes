@@ -1,0 +1,17 @@
+{
+    "files.associations": {
+        "wpsConvergence.C": "cpp",
+        "wpsDecomposeY2.C": "cpp",
+        "wpsDecomposeY！.C": "cpp",
+        "wpsDecomposeYQ.C": "cpp",
+        "wpsDecomposeX2.C": "cpp",
+        "wpsDecompose2.C": "cpp",
+        "wpsDecompose.C": "cpp",
+        "wpsDecompose2 copy.C": "cpp",
+        "wpsDecomposebak.C": "cpp",
+        "forceInSpanFace.C": "cpp",
+        "wpsConvergence copy.C": "cpp",
+        "qforceConvergence.C": "cpp",
+        "qForceIntegration.C": "cpp"
+    }
+}

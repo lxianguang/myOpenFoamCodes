@@ -1,2 +1,0 @@
-wpsConvergence.C
-EXE = $(FOAM_USER_APPBIN)/wpsConvergence

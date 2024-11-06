@@ -1,2 +1,0 @@
-wpsDecomposeX2.C
-EXE = $(FOAM_USER_APPBIN)/wpsDecomposeX2

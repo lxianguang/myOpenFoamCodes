@@ -159,9 +159,9 @@ int main(int argc, char *argv[])
         Info << "loading pressure field" << endl;
 
         // 读取向量场
-        volVectorField omega(
+        volVectorField velocity(
             IOobject(
-                "vorticity",
+                "U",
                 runTime.timeName(),
                 mesh,
                 IOobject::MUST_READ,
@@ -169,7 +169,10 @@ int main(int argc, char *argv[])
                 ),
             mesh
         );
-        Info << "loading vorticity field" << endl;
+        Info << "loading velocity field" << endl;
+
+        // 计算涡量场
+        const volVectorField omega = fvc::curl(velocity);
 
         // 获取壁面信息
         const surfaceVectorField normal = - mesh.Sf()/mesh.magSf();         // 法向量场(从物面指向流体)

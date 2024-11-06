@@ -121,7 +121,7 @@ void Foam::myWaveDisplacementPointPatchVectorField::updateCoeffs()
 
     Field<vector>::operator=
     (
-	amplitude_*(0.0 + 0.0 * scalx + 1.0 * scalx * scalx)*exp(-1/(100*t.value()+0.001))*sin(omega_*t.value() - points) 
+	amplitude_*(0.0 + 0.0 * scalx + 1.0 * scalx * scalx)*exp(-1/(10*t.value()+0.01))*sin(omega_*t.value() - points) 
     );
 
     fixedValuePointPatchField<vector>::updateCoeffs();
