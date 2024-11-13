@@ -49,23 +49,25 @@ int main(int argc, char *argv[])
 {
     // 准备参数列表
     argList::noParallel();
-    argList::validArgs.append("dimensionLabel");
-    argList::validArgs.append("timeStep");
+    argList::validArgs.append("coordinateDimension");
+    argList::validArgs.append("forceDimensionLabel");
     argList::validArgs.append("deltaInterval");
 
     // 准备选项
     argList::addOption // string variable
         (
-            "dimensionLabel",
+            "coordinateDimension",
             "word",
-            "the direction of the resultant force decomposition (x, y, z)"
+            "the  coordinatedirection of the force distribution (x, y, z)"
         );   
 
-    argList::addOption // scalar variable
+    argList::addOption // string variable
         (
-            "timeStep",
-            "scalar",
-            "provide the time for the WPS theory decomposition");
+            "forceDimensionLabel",
+            "word",
+            "the direction of the resultant force decomposition (x, y, z)"
+        );
+
     argList::addOption // string variable
         (
             "deltaInterval",
@@ -81,31 +83,50 @@ int main(int argc, char *argv[])
     }
 
     // 读取参数
-    const word dimensionLabel = args[1];                 // 读取合力分解的方向
-    const scalar timeStep = args.get<scalar>(2);        // 读取合力分解时刻
+    const word coordinateDimension = args[1];           // 读取合力分解的方向
+    const word forceDimensionLabel = args[2];           // 读取合力分解的方向
     const scalar deltaInterval = args.get<scalar>(3);   // 读取沿流向积分间隔
 
     // 判断方向
     word phiFileName;
-    if (dimensionLabel.compare("x") == 0)
+    label coordinateLabel = 0;
+    if (forceDimensionLabel.compare("x") == 0)
 	{   
         phiFileName = "Tx";
 	}
-	else if (dimensionLabel.compare("y") == 0)
+	else if (forceDimensionLabel.compare("y") == 0)
 	{
         phiFileName = "Ty";
 	}
-    else if (dimensionLabel.compare("z") == 0)
+    else if (forceDimensionLabel.compare("z") == 0)
 	{
         phiFileName = "Tz";
 	}
     else
 	{
 		FatalError
-                << "Dimension input " << dimensionLabel << " is illegal."
+                << "Dimension input " << forceDimensionLabel << " is illegal."
                 << abort(FatalError);
 	}
 
+    if (coordinateDimension.compare("x") == 0)
+	{   
+        coordinateLabel = 0;
+	}
+	else if (coordinateDimension.compare("y") == 0)
+	{
+        coordinateLabel = 1;
+	}
+    else if (coordinateDimension.compare("z") == 0)
+	{
+        coordinateLabel = 2;
+	}
+    else
+	{
+		FatalError
+                << "Dimension input " << coordinateDimension << " is illegal."
+                << abort(FatalError);
+	}
     //#include "setRootCase.H"
     #include "createTime.H"
     #include "createMesh.H"    
@@ -139,82 +160,87 @@ int main(int argc, char *argv[])
     );
     Info << "loading   density value: " << rho << endl;
 
-    // 读取指定时刻文件下的场量进行WPS受力分解
-    mesh.readUpdate();                          // 更新网格
-    Info<< "force decomposition time : " << timeStep << endl;
-
-    // 读取标量场，不需要查找关键字
-    volScalarField Phi(                         // 定义一个标量场，无需指定量纲，因为其量纲已经在相应的文件中指定了
-        IOobject(
-            phiFileName,                        // 指定名称
-            runTime.timeName(timeStep),         // 获取当前时间
-            mesh,
-            IOobject::MUST_READ,
-            IOobject::AUTO_WRITE
-        ),
-        mesh 
-    );
-    Info << "loading phi field ==================================" << endl;
-
-    // 读取向量场
-    volVectorField velocity(
-        IOobject(
-            "U",
-            runTime.timeName(timeStep),
-            mesh,
-            IOobject::MUST_READ,
-            IOobject::AUTO_WRITE
-            ),
-        mesh
-    );
-    Info << "loading velocity field =============================" << endl;
-
-    // 计算涡量和Q准则
-    //const volVectorField omega = fvc::curl(velocity);
-    const volTensorField gradU = fvc::grad(velocity);
-    const volScalarField Q     = 0.5*(sqr(tr(gradU)) - tr(((gradU) & (gradU))));
+    // 读取文件夹内时间刻列表
+    instantList timeDirs = timeSelector::select0(runTime, args);
 
     // 获取网格横向坐标范围
-    const scalar xLableMin = min(mesh.points().component(0));
-    const scalar xLableMax = max(mesh.points().component(0));
+    const scalar lableMin = min(mesh.points().component(coordinateLabel));
+    const scalar lableMax = max(mesh.points().component(coordinateLabel));
+    const scalar gridsNum = ceil((lableMax - lableMin)/deltaInterval);
 
     // 创建输出文件
     fileName outputDir = mesh.time().path()/"postProcessing/forceDecomposition";
     mkDir(outputDir);
     autoPtr<OFstream> outputFilePtr;
-    outputFilePtr.reset(new OFstream(outputDir/"wpsConvergence_" + dimensionLabel + "_" + std::to_string(timeStep).substr(0, 5) + ".dat"));
-    outputFilePtr() << "# Force decomposition at time : " << timeStep << endl;
-    outputFilePtr() << "# The x coordinate range of the integration region is : ";
-    outputFilePtr() << "(" << xLableMin << " : " << deltaInterval << " : " << xLableMax << ")" << "\n" << endl;
-    outputFilePtr() << "Variables = x, total_q_force, positive_q_force, negative_q_force" << "\n" << endl;
+    outputFilePtr.reset(new OFstream(outputDir/"qForceIntegration_" + coordinateDimension + forceDimensionLabel + ".dat"));
+    outputFilePtr() << "# The "<< coordinateDimension << " coordinate range of the integration region is : ";
+    outputFilePtr() << "(" << lableMin << " : " << deltaInterval << " : " << lableMax << ")" << "\n" << endl;
+    outputFilePtr() << "Variables = t, " << coordinateDimension << ", total_q_force, positive_q_force, negative_q_force" << "\n" << endl;
+    outputFilePtr() << "Zone I = " << gridsNum <<", J = "<< timeDirs.size() << ", f = point" << "\n" << endl;
 
-    // 流场体积分计算涡力
-    const scalarField field_f_Q_p = 2 * rho.value() * Phi.field() * 0.5 * (Q.field() + mag(Q.field()));
-    const scalarField field_f_Q_n = 2 * rho.value() * Phi.field() * 0.5 * (Q.field() - mag(Q.field()));
-    //const scalar value_f_Q_p = gSum(mesh.V() * field_f_Q_p);
-
-    for( scalar xlable = xLableMin; xlable <= xLableMax; xlable = xlable + deltaInterval )
+    forAll(timeDirs, timeI)
     {
-        scalar value_f_Q_p = 0.0;
-        scalar value_f_Q_n = 0.0;
-        // 控制积分范围
-        for (label cellI = 0; cellI < mesh.C().size(); cellI++){
-            if (mesh.C()[cellI].component(0) <= xlable + deltaInterval){
-                value_f_Q_p = value_f_Q_p + mesh.V()[cellI] * field_f_Q_p[cellI];
-                value_f_Q_n = value_f_Q_n + mesh.V()[cellI] * field_f_Q_n[cellI];
+        runTime.setTime(timeDirs[timeI], timeI);
+        mesh.readUpdate();                          // 更新网格
+        Info<< "Time = " << runTime.timeName() << endl;
+
+        // 读取标量场，不需要查找关键字
+        volScalarField Phi(                         // 定义一个标量场，无需指定量纲，因为其量纲已经在相应的文件中指定了
+            IOobject(
+                phiFileName,                        // 指定名称
+                runTime.timeName(),                 // 获取当前时间
+                mesh,
+                IOobject::MUST_READ,
+                IOobject::AUTO_WRITE
+            ),
+            mesh 
+        );
+        Info << "loading phi field ==================================" << endl;
+
+        // 读取向量场
+        volVectorField velocity(
+            IOobject(
+                "U",
+                runTime.timeName(),
+                mesh,
+                IOobject::MUST_READ,
+                IOobject::AUTO_WRITE
+                ),
+            mesh
+        );
+        Info << "loading velocity field =============================" << endl;
+
+        // 计算涡量和Q准则
+        //const volVectorField omega = fvc::curl(velocity);
+        const volTensorField gradU = fvc::grad(velocity);
+        const volScalarField Q     = 0.5*(sqr(tr(gradU)) - tr(((gradU) & (gradU))));
+
+        // 流场体积分计算涡力
+        const scalarField field_f_Q_p = 2 * rho.value() * Phi.field() * 0.5 * (Q.field() + mag(Q.field()));
+        const scalarField field_f_Q_n = 2 * rho.value() * Phi.field() * 0.5 * (Q.field() - mag(Q.field()));
+
+        for( scalar xlable = lableMin; xlable <= lableMax; xlable = xlable + deltaInterval )
+        {
+            scalar value_f_Q_p = 0.0;
+            scalar value_f_Q_n = 0.0;
+            // 控制积分范围
+            for (label cellI = 0; cellI < mesh.C().size(); cellI++){
+                if (mesh.C()[cellI].component(coordinateLabel) <= xlable + deltaInterval) & (mesh.C()[cellI].component(1) <= 0.075){
+                    value_f_Q_p = value_f_Q_p + mesh.V()[cellI] * field_f_Q_p[cellI];
+                    value_f_Q_n = value_f_Q_n + mesh.V()[cellI] * field_f_Q_n[cellI];
+                }
             }
+            
+            // 计算合力
+            scalar value_f_Q_t = value_f_Q_p + value_f_Q_n;
+
+            // 输出数据
+            outputFilePtr() << runTime.timeName() << " ";
+            outputFilePtr() << xlable       << " ";
+            outputFilePtr() << value_f_Q_t  << " ";
+            outputFilePtr() << value_f_Q_p  << " ";
+            outputFilePtr() << value_f_Q_n  << endl;
         }
-
-        scalar value_f_Q_t = value_f_Q_p + value_f_Q_n;
-        
-        Info << "the integral coordinate: " << xlable << endl;
-        //Info << "Q-criterion force value: " << value_f_Q_t << endl;
-
-        // 输出数据
-        outputFilePtr() << xlable       << "\t";
-        outputFilePtr() << value_f_Q_t  << " ";
-        outputFilePtr() << value_f_Q_p  << " ";
-        outputFilePtr() << value_f_Q_n  << endl;
     }
     return 0;
 }

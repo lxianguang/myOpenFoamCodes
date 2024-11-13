@@ -1,8 +1,0 @@
-{
-    "files.associations": {
-        "myWaveDisplacementPointPatchVectorField.C": "cpp",
-        "wpsConvergence.C": "cpp",
-        "forceInSpanFace.C": "cpp",
-        "wpsDecomposeZ2.C": "cpp"
-    }
-}

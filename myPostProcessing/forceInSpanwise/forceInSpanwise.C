@@ -222,11 +222,11 @@ int main(int argc, char *argv[])
             const scalar force_t_z = value_f_P_z + value_f_V_z;
 
             // 输出数据
-            outputFilePtr() << runTime.timeName() << "\t";
+            outputFilePtr() << runTime.timeName() << " ";
             outputFilePtr() << zlable       << " ";
             outputFilePtr() << force_t_x    << " ";
             outputFilePtr() << force_t_y    << " ";
-            outputFilePtr() << force_t_z    << "\t";
+            outputFilePtr() << force_t_z    << " ";
             outputFilePtr() << value_f_P_x  << " ";
             outputFilePtr() << value_f_P_y  << " ";
             outputFilePtr() << value_f_P_z  << " ";

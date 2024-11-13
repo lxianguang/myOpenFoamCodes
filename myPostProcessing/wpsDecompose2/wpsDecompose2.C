@@ -276,7 +276,7 @@ int main(int argc, char *argv[])
         const scalar force_t = value_f_V + value_f_Q + value_f_VP + value_f_A + value_f_VP2 + value_f_A2;
 
         // 输出数据
-        outputFilePtr() << runTime.timeName() << "\t";
+        outputFilePtr() << runTime.timeName() << " ";
         outputFilePtr() << force_t     << " ";
         outputFilePtr() << value_f_V   << " ";
         outputFilePtr() << value_f_Q   << " ";
