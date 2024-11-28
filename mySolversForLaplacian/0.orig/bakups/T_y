@@ -9,11 +9,57 @@ FoamFile
 {
     version     2.0;
     format      ascii;
-    class       dictionary;
-    object      transportProperties;
+    class       volScalarField;
+    object      T;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-DT              1;
+dimensions      [0 0 0 1 0 0 0];
+
+internalField   uniform 0;
+
+boundaryField
+{
+    fish
+    {
+        type            myFixedGradient;
+        direction     (0 -1 0);
+    }
+
+    cylinder
+    {
+        type            zeroGradient;
+    }
+
+    inlet
+    {
+        type            fixedValue;
+        value          uniform 0;
+    }
+
+    outlet
+    {
+        type            fixedValue;
+        value          uniform 0;
+    }
+
+    backAndFront
+    {
+        type            fixedValue;
+        value          uniform 0;
+    }
+
+    top
+    {
+        type            fixedValue;
+        value          uniform 0;
+    }
+
+    bottom
+    {
+        type            fixedValue;
+        value          uniform 0;
+    }
+}
 
 // ************************************************************************* //

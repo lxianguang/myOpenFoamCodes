@@ -20,10 +20,10 @@ internalField   uniform 0;
 
 boundaryField
 {
-    wing
+    fish
     {
         type            myFixedGradient;
-        direction     (-1 0 0);
+        direction     (0 0 -1);
     }
 
     cylinder
@@ -43,18 +43,19 @@ boundaryField
         value          uniform 0;
     }
 
-    topAndBottom
+    backAndFront
     {
         type            fixedValue;
         value          uniform 0;
     }
 
-    symBack
+    top
     {
-        type symmetryPlane;
+        type            fixedValue;
+        value          uniform 0;
     }
 
-    symFront
+    bottom
     {
         type            fixedValue;
         value          uniform 0;

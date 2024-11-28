@@ -1,0 +1,47 @@
+#!/bin/sh
+#------------------------------------------------------------------------------
+
+solverend=15
+filepath="../Convergence/Re1000K1.00A0.10F2.00_1"
+
+#------------------------------------------------------------------------------
+
+for folderpath in $filepath/9* $filepath/10*
+do
+    #if test -f $folderpath
+    #then
+    #    echo $folderpath 是文件
+    #fi
+    if test -d $folderpath
+    then
+        #echo $folderpath 是目录
+        meshpath=$filepath/constant/polyMesh
+        pointspath=$folderpath/polyMesh/points
+        cp -f $filepath/system/decomposeParDict system/
+        echo "Laplacian solver begin for $folderpath"
+        # solver for x dimension ==========================================
+        ./Allclean
+        cp -f 0.orig/bakups/T_x 0.orig/T
+        cp -r -f $meshpath constant/
+        cp -f $pointspath constant/polyMesh/
+        ./Allrun
+        cp -f $solverend/T $folderpath/Tx
+        # solver for y dimension ==========================================
+        ./Allclean
+        cp -f 0.orig/bakups/T_y 0.orig/T
+        cp -r -f $meshpath constant/
+        cp -f $pointspath constant/polyMesh/
+        ./Allrun
+        cp -f $solverend/T $folderpath/Ty
+        # solver for y dimension ==========================================
+        ./Allclean
+        cp -f 0.orig/bakups/T_z 0.orig/T
+        cp -r -f $meshpath constant/
+        cp -f $pointspath constant/polyMesh/
+        ./Allrun
+        cp -f $solverend/T $folderpath/Tz
+        echo "Laplacian solver end   for $folderpath"
+    fi
+done
+
+#------------------------------------------------------------------------------

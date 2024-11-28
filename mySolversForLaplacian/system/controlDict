@@ -10,41 +10,39 @@ FoamFile
     version     2.0;
     format      ascii;
     class       dictionary;
-    object      fvSchemes;
+    object      controlDict;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-ddtSchemes
-{
-    default         Euler;
-    //default         CrankNicolson 0.5;
-}
+application     laplacianFoam;
 
-gradSchemes
-{
-    default         none;
-    grad(T)         Gauss linear;
-}
+startFrom       startTime;
 
-divSchemes
-{
-    default         none;
-}
+startTime       0;
 
-laplacianSchemes
-{
-    default         none;
-    laplacian(DT,T) Gauss linear corrected;
-}
+stopAt          endTime;
 
-interpolationSchemes
-{
-    default         linear;
-}
+endTime         15;
 
-snGradSchemes
-{
-    default         corrected;
-}
+deltaT          1e-2;
+
+writeControl    runTime;
+
+writeInterval   1;
+
+purgeWrite      5;
+
+//writeFormat     ascii;
+writeFormat     binary;
+
+writePrecision  8;
+
+writeCompression off;
+
+timeFormat      general;
+
+timePrecision   6;
+
+runTimeModifiable no;
 
 // ************************************************************************* //
