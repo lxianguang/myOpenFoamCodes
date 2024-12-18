@@ -195,9 +195,10 @@ int main(int argc, char *argv[])
 
         // 流场体积分计算涡力
         //const scalarField field_f_Q = 2 * rho.value() * Phi.field() * 0.5 * (Q.field() + mag(Q.field()));
+        //const scalarField field_f_Q = 2 * rho.value() * Phi.field() * 0.5 * (Q.field() - mag(Q.field()));
         const scalarField field_f_Q = 2 * rho.value() * Phi.field() * Q.field();
         const scalar value_f_Q = gSum(mesh.V() * field_f_Q);
-        Info << "Vortex            force value : " << value_f_Q << endl;
+        Info << "Vortex            force value: " << value_f_Q << endl;
 
         // 获取固体物面信息
         polyPatchID topPatch(boundaryName, mesh.boundaryMesh());

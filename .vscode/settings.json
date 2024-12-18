@@ -1,5 +1,9 @@
 {
     "files.associations": {
-        "wpsDecompose2.C": "cpp"
+        "wpsDecompose2.C": "cpp",
+        "wpsDecompose.C": "cpp",
+        "qForceIntegration.C": "cpp",
+        "myWaveDisplacementPointPatchVectorField.C": "cpp",
+        "forceInSpanwise.C": "cpp"
     }
 }
