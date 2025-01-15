@@ -1,0 +1,12 @@
+#!/bin/sh
+#------------------------------------------------------------------------------
+
+for folderpath in 9* 10*
+do
+echo $folderpath 是目录
+cp -f Tx $folderpath/Tx
+cp -f Ty $folderpath/Ty
+cp -f Tz $folderpath/Tz
+done
+
+#------------------------------------------------------------------------------
