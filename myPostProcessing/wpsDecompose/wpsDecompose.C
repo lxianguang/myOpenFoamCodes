@@ -36,6 +36,7 @@ Description
 
 #include "Time.H"
 #include "fvCFD.H"
+#include "vector.H"
 #include "argList.H"
 #include "OFstream.H"
 #include "polyPatchID.H"
@@ -140,15 +141,17 @@ int main(int argc, char *argv[])
     mkDir(outputDir);
     autoPtr<OFstream> outputFilePtr;
     outputFilePtr.reset(new OFstream(outputDir/"wpsDecomposition_" + dimensionLabel + ".dat"));
-    outputFilePtr() << "Variables = time, total_force, viscous_force, vortex_force, viscous_pressure_force, ";
-    outputFilePtr() << "acceleration_force" << "\n" << endl;
+    outputFilePtr() << "Variables = time, force_t, force_Q, force_a, force_f, force_vp" << "\n" << endl;;
 
     // 读取不同时刻文件下的场量进行WPS受力分解
     instantList timeDirs = timeSelector::select0(runTime, args);
     forAll(timeDirs, timeI)
     {
+        // 更新网格信息
+        mesh.readUpdate();    
+
+        // 读取文件时刻
         runTime.setTime(timeDirs[timeI], timeI);
-        mesh.readUpdate();                          // 更新网格
         Info<< "Time = " << runTime.timeName() << endl;
 
         volScalarField Phi(                         // 定义一个标量场，无需指定量纲，因为其量纲已经在相应的文件中指定了
@@ -167,7 +170,7 @@ int main(int argc, char *argv[])
         volVectorField velocity(
             IOobject(
                 "U",
-                runTime.timeName(),
+                runTime.timeName(), 
                 mesh,
                 IOobject::MUST_READ,
                 IOobject::AUTO_WRITE
@@ -179,76 +182,69 @@ int main(int argc, char *argv[])
         volVectorField acceleration(
             IOobject(
                 "ddt(U)",
-                runTime.timeName(),
+                runTime.timeName(), 
                 mesh,
                 IOobject::MUST_READ,
                 IOobject::AUTO_WRITE
                 ),
             mesh
         );
-        Info << "loading acceleration field =========================" << endl;
+        Info << "loading acceleration field =========================" << endl;                      
 
-        // 计算涡量和Q准则
-        const volVectorField omega = fvc::curl(velocity);
-        const volTensorField gradU = fvc::grad(velocity);
-        const volScalarField Q     = 0.5*(sqr(tr(gradU)) - tr(((gradU) & (gradU))));
+        // 计算涡量和Q
+        volVectorField omega = fvc::curl(velocity);
+        volVectorField curlO = fvc::curl(omega);
+        volTensorField gradU = fvc::grad(velocity);
+        volScalarField Qcriterion = 0.5*(sqr(tr(gradU)) - tr(((gradU) & (gradU))));
 
-        // 流场体积分计算涡力
-        //const scalarField field_f_Q = 2 * rho.value() * Phi.field() * 0.5 * (Q.field() + mag(Q.field()));
-        //const scalarField field_f_Q = 2 * rho.value() * Phi.field() * 0.5 * (Q.field() - mag(Q.field()));
-        const scalarField field_f_Q = 2 * rho.value() * Phi.field() * Q.field();
-        const scalar value_f_Q = gSum(mesh.V() * field_f_Q);
-        Info << "Vortex            force value: " << value_f_Q << endl;
-
-        // 获取固体物面信息
-        polyPatchID topPatch(boundaryName, mesh.boundaryMesh());
-        if (!topPatch.active())
-        {
-            FatalError
-                << "Patch name " << boundaryName << " not found."
-                << abort(FatalError);
+        // 体积分计算Q力
+        scalar qForce = 0.0;
+        forAll(mesh.C(), cellID){
+            qForce = qForce + 2 * rho.value() *mesh.V()[cellID] * Phi[cellID] * Qcriterion[cellID];
         }
-        
-        // 获取网格信息
-        const surfaceVectorField normal = - mesh.Sf()/mesh.magSf();          // 法向量场(从物面指向流体)
-        const surfaceScalarField area   =   mesh.magSf();                    // 网格面积场
+        Info << "Qcriterion vortex force value: " << qForce << endl;
 
-        // 力分解固壁信息提取
-        label patchID1 = topPatch.index();
-        const vectorField surfaceNormal = normal.boundaryField()[patchID1];  // 壁面法向量
-        const vectorField surfaceOmega  = omega.boundaryField()[patchID1];   // 壁面涡量
-        const scalarField surfaceArea   = area.boundaryField()[patchID1];    // 壁面网格面积
-        const scalarField surfacePhi    = Phi.boundaryField()[patchID1];     // 壁面Phi值
-        
-        // 物面积分计算摩擦力
-        const vectorField vector_f_V = rho.value() * nu.value() * (surfaceOmega ^ surfaceNormal);
-        const scalarField scalar_f_V = surfaceArea * vector_f_V.component(forceIndex); 
-        const scalar value_f_V = gSum(scalar_f_V);
-        Info << "Viscious          force value: " << value_f_V << endl;
+        // 获取边界信息
+        label patchID = mesh.boundaryMesh().findPatchID(boundaryName);
+        if (patchID == -1)
+        {
+            Info << "Boundary '" << boundaryName << "' is not found." << endl;
+            return 1; 
+        }
+        label faceINum = mesh.boundaryMesh()[patchID].size();
 
-        // 物面积分计算粘性压强力
-        const volVectorField curlOmega = fvc::curl(omega);
-        const vectorField surfaceCurlOmega = rho.value() * nu.value() * curlOmega.boundaryField()[patchID1];
-        const scalarField field_f_VP = - surfaceArea * surfacePhi * (surfaceNormal & surfaceCurlOmega); 
-        const scalar value_f_VP = gSum(field_f_VP);
-        Info << "Viscious pressure force value: " << value_f_VP << endl;
-
-        // 物面积分计算加速度力
-        const vectorField surfaceAcceleration = rho.value() * acceleration.boundaryField()[patchID1];    // 壁面加速度场
-        const scalarField field_f_A = - surfaceArea * surfacePhi * (surfaceNormal & surfaceAcceleration); 
-        const scalar value_f_A = gSum(field_f_A);
-        Info << "Acceleration      force value: " << value_f_A << endl;
-
+        // 壁面积分
+        scalar friction = 0.0;
+        scalar pressure = 0.0;
+        scalar accforce = 0.0;
+        for (label faceID = 0; faceID < faceINum; faceID++){
+            // 壁面信息获取
+            scalar surfaceArea   = mesh.magSf().boundaryField()[patchID][faceID];               // 壁面网格面积
+            scalar surfacePhi    = Phi.boundaryField()[patchID][faceID];                        // 壁面phi值    
+            vector surfaceNormal = mesh.Sf().boundaryField()[patchID][faceID] / surfaceArea;    // 壁面法向量
+            vector surfaceOmega  = omega.boundaryField()[patchID][faceID];                      // 壁面涡量
+            vector surfaceCurl   = curlO.boundaryField()[patchID][faceID];                      // 壁面涡量散度
+            vector surfaceAcce   = acceleration.boundaryField()[patchID][faceID];               // 壁面加速度场
+            // 计算摩擦力
+            friction = friction + rho.value() * nu.value() * surfaceArea * component(surfaceNormal ^ surfaceOmega, forceIndex);
+            // 计算粘性压强力
+            pressure = pressure + rho.value() * nu.value() * surfaceArea * surfacePhi * (surfaceNormal & surfaceCurl);
+            // 计算加速度力
+            accforce = accforce + rho.value() * surfaceArea * surfacePhi *(surfaceNormal & surfaceAcce);
+        }
         // 计算合力
-        const scalar force_t = value_f_V + value_f_Q + value_f_VP + value_f_A;
+        scalar totalforce = qForce + accforce + friction + pressure;
+        Info << "Viscious friction force value: " << friction << endl;
+        Info << "Viscious pressure force value: " << pressure << endl;
+        Info << "Body acceleration force value: " << accforce << endl;
 
         // 输出数据
         outputFilePtr() << runTime.timeName() << " ";
-        outputFilePtr() << force_t     << " ";
-        outputFilePtr() << value_f_V   << " ";
-        outputFilePtr() << value_f_Q   << " ";
-        outputFilePtr() << value_f_VP  << " ";
-        outputFilePtr() << value_f_A   << endl;
+        outputFilePtr() << totalforce << " ";
+        outputFilePtr() << qForce     << " ";
+        outputFilePtr() << accforce   << " ";
+        outputFilePtr() << friction   << " ";
+        outputFilePtr() << pressure   << endl;
     }
     return 0;
 }

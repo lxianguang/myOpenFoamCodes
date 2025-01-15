@@ -49,17 +49,17 @@ int main(int argc, char *argv[])
 {
     // 准备参数列表
     argList::noParallel();
-    argList::validArgs.append("coordinateDimension");
+    argList::validArgs.append("boundaryName");
     argList::validArgs.append("forceDimensionLabel");
     argList::validArgs.append("deltaInterval");
 
     // 准备选项
     argList::addOption // string variable
         (
-            "coordinateDimension",
+            "boundaryName",
             "word",
-            "the  coordinatedirection of the force distribution (x, y, z)"
-        );   
+            "provide the name of boundary for the wps theory decomposition"
+        );  
 
     argList::addOption // string variable
         (
@@ -82,25 +82,28 @@ int main(int argc, char *argv[])
         Foam::FatalError.exit();
     }
 
-    // 读取参数
-    const word coordinateDimension = args[1];           // 读取合力分解的方向
-    const word forceDimensionLabel = args[2];           // 读取合力分解的方向
-    const scalar deltaInterval = args.get<scalar>(3);   // 读取沿流向积分间隔
+    // 读取参数 
+    const word boundaryName  = args[1];                 // 固壁边界名称
+    const word forceDimensionLabel = args[2];           // 合力分解的方向
+    const scalar deltaInterval = args.get<scalar>(3);   // 沿流向积分间隔
 
     // 判断方向
     word phiFileName;
-    label coordinateLabel = 0;
+    label forceIndex = 0;
     if (forceDimensionLabel.compare("x") == 0)
 	{   
         phiFileName = "Tx";
+        forceIndex  = 0;
 	}
 	else if (forceDimensionLabel.compare("y") == 0)
 	{
         phiFileName = "Ty";
+        forceIndex  = 1;
 	}
     else if (forceDimensionLabel.compare("z") == 0)
 	{
         phiFileName = "Tz";
+        forceIndex  = 2;
 	}
     else
 	{
@@ -109,24 +112,6 @@ int main(int argc, char *argv[])
                 << abort(FatalError);
 	}
 
-    if (coordinateDimension.compare("x") == 0)
-	{   
-        coordinateLabel = 0;
-	}
-	else if (coordinateDimension.compare("y") == 0)
-	{
-        coordinateLabel = 1;
-	}
-    else if (coordinateDimension.compare("z") == 0)
-	{
-        coordinateLabel = 2;
-	}
-    else
-	{
-		FatalError
-                << "Dimension input " << coordinateDimension << " is illegal."
-                << abort(FatalError);
-	}
     //#include "setRootCase.H"
     #include "createTime.H"
     #include "createMesh.H"    
@@ -163,19 +148,29 @@ int main(int argc, char *argv[])
     // 读取文件夹内时间刻列表
     instantList timeDirs = timeSelector::select0(runTime, args);
 
+    // 获取固体物面信息
+    polyPatchID topPatch(boundaryName, mesh.boundaryMesh());
+    if (!topPatch.active())
+    {
+        FatalError
+            << "Patch name " << boundaryName << " not found."
+            << abort(FatalError);
+    }
+    label patchID1 = topPatch.index();
+
     // 获取网格横向坐标范围
-    const scalar lableMin = min(mesh.points().component(coordinateLabel));
-    const scalar lableMax = max(mesh.points().component(coordinateLabel));
+    const scalar lableMin = min(mesh.Cf().boundaryField()[patchID1].component(0));
+    const scalar lableMax = max(mesh.Cf().boundaryField()[patchID1].component(0));
     const scalar gridsNum = ceil((lableMax - lableMin)/deltaInterval);
 
     // 创建输出文件
     fileName outputDir = mesh.time().path()/"postProcessing/forceDecomposition";
     mkDir(outputDir);
     autoPtr<OFstream> outputFilePtr;
-    outputFilePtr.reset(new OFstream(outputDir/"qForceIntegration_" + coordinateDimension + forceDimensionLabel + ".dat"));
-    outputFilePtr() << "# The "<< coordinateDimension << " coordinate range of the integration region is : ";
+    outputFilePtr.reset(new OFstream(outputDir/"forcesAcrossBody_" + forceDimensionLabel + ".dat"));
+    outputFilePtr() << "# The coordinate range of the integration region is : ";
     outputFilePtr() << "(" << lableMin << " : " << deltaInterval << " : " << lableMax << ")" << "\n" << endl;
-    outputFilePtr() << "Variables = t, " << coordinateDimension << ", total_q_force, positive_q_force, negative_q_force" << "\n" << endl;
+    outputFilePtr() << "Variables = t, x , viscous_force, viscous_pressure_force, acceleration_force" << "\n" << endl;
     outputFilePtr() << "Zone I = " << gridsNum <<", J = "<< timeDirs.size() << ", f = point" << "\n" << endl;
 
     forAll(timeDirs, timeI)
@@ -210,36 +205,71 @@ int main(int argc, char *argv[])
         );
         Info << "loading velocity field =============================" << endl;
 
-        // 计算涡量和Q准则
-        //const volVectorField omega = fvc::curl(velocity);
-        const volTensorField gradU = fvc::grad(velocity);
-        const volScalarField Q     = 0.5*(sqr(tr(gradU)) - tr(((gradU) & (gradU))));
+        // 读取加速度场
+        volVectorField acceleration(
+            IOobject(
+                "ddt(U)",
+                runTime.timeName(),
+                mesh,
+                IOobject::MUST_READ,
+                IOobject::AUTO_WRITE
+                ),
+            mesh
+        );
+        Info << "loading acceleration field =========================" << endl;
 
-        // 流场体积分计算涡力
-        const scalarField field_f_Q_p = 2 * rho.value() * Phi.field() * 0.5 * (Q.field() + mag(Q.field()));
-        const scalarField field_f_Q_n = 2 * rho.value() * Phi.field() * 0.5 * (Q.field() - mag(Q.field()));
+        // 计算涡量和Q准则
+        const volVectorField omega = fvc::curl(velocity);
+        const volTensorField gradU = fvc::grad(velocity);
+
+        // 获取网格信息
+        const surfaceVectorField normal = - mesh.Sf()/mesh.magSf();          // 法向量场(从物面指向流体)
+        const surfaceScalarField area   =   mesh.magSf();                    // 网格面积场
+
+        // 力分解固壁信息提取
+        const vectorField surfaceNormal = normal.boundaryField()[patchID1];  // 壁面法向量
+        const vectorField surfaceOmega  = omega.boundaryField()[patchID1];   // 壁面涡量
+        const scalarField surfaceArea   = area.boundaryField()[patchID1];    // 壁面网格面积
+        const scalarField surfacePhi    = Phi.boundaryField()[patchID1];     // 壁面Phi值
+
+        // 摩擦力被积函数
+        const vectorField vector_f_V = rho.value() * nu.value() * (surfaceOmega ^ surfaceNormal);
+        const scalarField scalar_f_V = surfaceArea * vector_f_V.component(forceIndex); 
+
+        // 粘性压强力被积函数
+        const volVectorField curlOmega = fvc::curl(omega);
+        const vectorField surfaceCurlOmega = rho.value() * nu.value() * curlOmega.boundaryField()[patchID1];
+        const scalarField field_f_VP = - surfaceArea * surfacePhi * (surfaceNormal & surfaceCurlOmega); 
+
+        // 加速度力被积函数
+        const vectorField surfaceAcceleration = rho.value() * acceleration.boundaryField()[patchID1];    // 壁面加速度场
+        const scalarField field_f_A = - surfaceArea * surfacePhi * (surfaceNormal & surfaceAcceleration); 
 
         for( scalar xlable = lableMin; xlable <= lableMax; xlable = xlable + deltaInterval )
         {
-            scalar value_f_Q_p = 0.0;
-            scalar value_f_Q_n = 0.0;
+            scalar value_f_V = 0.0;
+            scalar value_f_VP= 0.0;
+            scalar value_f_A = 0.0;
             // 控制积分范围
-            for (label cellI = 0; cellI < mesh.C().size(); cellI++){
-                if (mesh.C()[cellI].component(coordinateLabel) <= xlable + deltaInterval){
-                    value_f_Q_p = value_f_Q_p + mesh.V()[cellI] * field_f_Q_p[cellI];
-                    value_f_Q_n = value_f_Q_n + mesh.V()[cellI] * field_f_Q_n[cellI];
+            for (label cellI = 0; cellI < mesh.Cf().boundaryField()[patchID1].size(); cellI++){
+                if ((mesh.Cf().boundaryField()[patchID1][cellI].component(0) <= xlable + deltaInterval)){
+                    // 摩擦力计算
+                    value_f_V = value_f_V + scalar_f_V[cellI];
+
+                    // 粘性压强力计算
+                    value_f_VP = value_f_VP + field_f_VP[cellI];
+                    
+                    // 物面积分计算加速度力
+                    value_f_A = value_f_A + field_f_A[cellI];
                 }
             }
             
-            // 计算合力
-            scalar value_f_Q_t = value_f_Q_p + value_f_Q_n;
-
             // 输出数据
             outputFilePtr() << runTime.timeName() << " ";
-            outputFilePtr() << xlable       << " ";
-            outputFilePtr() << value_f_Q_t  << " ";
-            outputFilePtr() << value_f_Q_p  << " ";
-            outputFilePtr() << value_f_Q_n  << endl;
+            outputFilePtr() << xlable     << " ";
+            outputFilePtr() << value_f_V  << " ";
+            outputFilePtr() << value_f_VP << " ";
+            outputFilePtr() << value_f_A  << endl;
         }
     }
     return 0;

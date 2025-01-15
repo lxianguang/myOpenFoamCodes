@@ -4,6 +4,17 @@
         "wpsDecompose.C": "cpp",
         "qForceIntegration.C": "cpp",
         "myWaveDisplacementPointPatchVectorField.C": "cpp",
-        "forceInSpanwise.C": "cpp"
+        "forceInSpanwise.C": "cpp",
+        "forceInterInFlow.C": "cpp",
+        "forceAcrossBody.C": "cpp",
+        "ostream": "cpp",
+        "optional": "cpp",
+        "system_error": "cpp",
+        "myFixedGradientFvPatchScalarField.C": "cpp",
+        "vector": "cpp",
+        "array": "cpp",
+        "string_view": "cpp",
+        "initializer_list": "cpp",
+        "utility": "cpp"
     }
 }
