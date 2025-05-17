@@ -16,5 +16,7 @@ cd "${0%/*}" || exit                                # Run from this directory
     runParallel $(getApplication)
 
     runApplication reconstructPar
+
+    rm -rf processor*
 )
 #------------------------------------------------------------------------------

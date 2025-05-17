@@ -20,7 +20,7 @@ internalField   uniform 0;
 
 boundaryField
 {
-    fish
+    wing
     {
         type            myFixedGradient;
         direction     (-1 0 0);
@@ -43,22 +43,15 @@ boundaryField
         value          uniform 0;
     }
 
-    backAndFront
+    topAndBottom
     {
         type            fixedValue;
         value          uniform 0;
     }
 
-    top
+    frontAndBack
     {
-        type            fixedValue;
-        value          uniform 0;
-    }
-
-    bottom
-    {
-        type            fixedValue;
-        value          uniform 0;
+        type            empty;
     }
 }
 

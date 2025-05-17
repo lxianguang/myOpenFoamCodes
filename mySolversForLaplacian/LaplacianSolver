@@ -1,12 +1,12 @@
 #!/bin/sh
 #------------------------------------------------------------------------------
 
-solverend=15
-filepath="../Convergence/Re1000K1.00A0.10F2.00_1"
+solverend=20
+filepath="../Re100Std0.16AoA02-Axmax"
 
 #------------------------------------------------------------------------------
 
-for folderpath in $filepath/9* $filepath/10*
+for folderpath in $filepath/[8-9]*
 do
     #if test -f $folderpath
     #then
@@ -33,13 +33,13 @@ do
         cp -f $pointspath constant/polyMesh/
         ./Allrun
         cp -f $solverend/T $folderpath/Ty
-        # solver for y dimension ==========================================
-        ./Allclean
-        cp -f 0.orig/bakups/T_z 0.orig/T
-        cp -r -f $meshpath constant/
-        cp -f $pointspath constant/polyMesh/
-        ./Allrun
-        cp -f $solverend/T $folderpath/Tz
+        # solver for z dimension ==========================================
+        #./Allclean
+        #cp -f 0.orig/bakups/T_z 0.orig/T
+        #cp -r -f $meshpath constant/
+        #cp -f $pointspath constant/polyMesh/
+        #./Allrun
+        #cp -f $solverend/T $folderpath/Tz
         echo "Laplacian solver end   for $folderpath"
     fi
 done

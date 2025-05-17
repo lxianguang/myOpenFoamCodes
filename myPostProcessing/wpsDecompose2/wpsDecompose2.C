@@ -200,8 +200,8 @@ int main(int argc, char *argv[])
 
         // 计算涡量和Q准则
         volVectorField omega = fvc::curl(velocity);
-        volVectorField curlO = fvc::curl(omega);
         volTensorField gradU = fvc::grad(velocity);
+        volVectorField curlO = fvc::curl(omega);
         volScalarField Qcriterion = 0.5*(sqr(tr(gradU)) - tr(((gradU) & (gradU))));
 
         // 体积分计算Q力
@@ -242,7 +242,7 @@ int main(int argc, char *argv[])
             vector surfaceCurl   = curlO.boundaryField()[patchID1][faceID];                      // 壁面涡量散度
             vector surfaceAcce   = acceleration.boundaryField()[patchID1][faceID];               // 壁面加速度场
             // 计算摩擦力
-            friction = friction + rho.value() * nu.value() * surfaceArea * component(surfaceNormal ^ surfaceOmega, forceIndex);
+            friction  = friction  + rho.value() * nu.value() * surfaceArea * component(surfaceNormal ^ surfaceOmega, forceIndex);
             // 计算粘性压强力
             pressure1 = pressure1 + rho.value() * nu.value() * surfaceArea * surfacePhi * (surfaceNormal & surfaceCurl);
             // 计算加速度力
