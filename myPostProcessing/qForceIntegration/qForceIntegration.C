@@ -58,7 +58,7 @@ int main(int argc, char *argv[])
         (
             "coordinateDimension",
             "word",
-            "the  coordinatedirection of the force distribution (x, y, z)"
+            "the coordinate direction of the force distribution (x, y, z)"
         );   
 
     argList::addOption // string variable

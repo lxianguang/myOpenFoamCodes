@@ -148,7 +148,7 @@ int main(int argc, char *argv[])
     mkDir(outputDir);
     autoPtr<OFstream> outputFilePtr;
     outputFilePtr.reset(new OFstream(outputDir/"wpsDecomposition2_" + dimensionLabel + ".dat"));
-    outputFilePtr() << "Variables = time, force_t, force_Q, force_a, force_f1, force_f2, force_vp1, force_vp2" << "\n" << endl;;
+    outputFilePtr() << "Variables = time, force_t, force_Q, force_f, force_a1, force_a2, force_vp1, force_vp2" << "\n" << endl;;
 
     // 读取不同时刻文件下的场量进行WPS受力分解
     instantList timeDirs = timeSelector::select0(runTime, args);
@@ -270,9 +270,9 @@ int main(int argc, char *argv[])
         outputFilePtr() << runTime.timeName() << " ";
         outputFilePtr() << totalforce << " ";
         outputFilePtr() << qForce     << " ";
+        outputFilePtr() << friction   << " ";
         outputFilePtr() << accforce1  << " ";
         outputFilePtr() << accforce2  << " ";
-        outputFilePtr() << friction   << " ";
         outputFilePtr() << pressure1  << " ";
         outputFilePtr() << pressure2  << endl;
     }
