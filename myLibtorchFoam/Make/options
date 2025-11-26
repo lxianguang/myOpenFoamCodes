@@ -1,0 +1,8 @@
+EXE_INC = \
+    -I/apps/OpenFOAM-v2406/libtorch/include -std=c++17 \
+    -I/apps/OpenFOAM-v2406/libtorch/include/torch/csrc/api/include -std=c++17
+
+EXE_LIBS = \
+    -L/apps/OpenFOAM-v2406/libtorch/lib \
+    -ltorch \
+    -lc10
