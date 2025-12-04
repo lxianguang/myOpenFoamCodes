@@ -29,39 +29,42 @@ int main(int argc, char *argv[])
     #include "createTime.H"
     #include "createMesh.H"
 
-    Info << "==================== Setting parameters ====================" << endl;
+    Info << "================ Loading training parameters ===============" << endl;
+    Info << "Loading training parameters from ./" << runTime.system() + "/trainingControlDict" << endl;
+    IOdictionary trainingControlDict = readTransportProperties(mesh, runTime.system(), "trainingControlDict");  // 创建自定义字典对象
+    const List<label> layerSizes   = trainingControlDict.get<List<label>>("layerSizes");    // 网络层数及每层神经元数量
+    const size_t num_epochs        = trainingControlDict.get<scalar>("numEpochs");           // 训练次数
+    const float  learningRate      = trainingControlDict.get<scalar>("learningRate");        // 学习率
+    const float  schedulerRate     = trainingControlDict.get<scalar>("schedulerRate");       // 学习率衰减率
+    const size_t schedulerStep     = trainingControlDict.get<scalar>("schedulerStep");       // 学习率衰减步长
+    const size_t infoInterval      = trainingControlDict.get<scalar>("outputInterval");      // 训练信息输出间隔
+    const vector trainingTimeList  = trainingControlDict.get<vector>("trainingTimeList");    // 初始时间、时间间隔、时刻数量
+    const vector predicingTimeList = trainingControlDict.get<vector>("predictingTimeList");
+    const vector maxCoords         = trainingControlDict.get<vector>("maxCoords");           // 定义流场取样范围
+    const vector minCoords         = trainingControlDict.get<vector>("minCoords");
+
     // 定义计算时间范围和受力文件路径
+    const fileName forcesDir             = "./postProcessing/forcesWing/0/force.dat";
+    const fileName outputDir             = "./postProcessing/trainedFNN/";
+    const instantList trainingTimeDirs   = creatTimeDirList(trainingTimeList);
+    const instantList validatingTimeDirs = creatTimeDirList(predicingTimeList);
     // instantList timeDirs = timeSelector::select0(runTime, args);
     // instantList trainingTimeDirs({instant("20"), instant("20.5"), instant("21"), instant("21.5"), instant("22"), instant("22.5")});
-    const instantList trainingTimeDirs   = creatTimeDirList(20.0, 0.40, 11);
-    const instantList validatingTimeDirs = creatTimeDirList(20.0, 0.10, 51);
-    const fileName forcesDir = "./postProcessing/forcesWing/0/force.dat";
-    const fileName outputDir = "./postProcessing/trainedFNN/";
-
-    // 定义流场取样范围
-    const vector minCoords(-1.0, -1.5, 0.0);
-    const vector maxCoords( 3.5,  1.5, 1.0);
-
-    // 定义神经网络结构及训练参数
-    const std::vector<int64_t> layerSizes = {4, 32, 32, 32, 32, 2}; // 网络层数及每层神经元数量
-    const size_t num_epochs    = 4000;    // 训练次数
-    const double learningRate  = 4e-3;    // 学习率
-    const double schedulerRate = 0.9;     // 学习率衰减率
-    const size_t schedulerStep = 200;     // 学习率衰减步长
-    const size_t infoInterval  = 20;      // 训练信息输出间隔
-
-    // 输出参数信息
+    
+    // 输出训练参数
     if (!isDir(outputDir)) mkDir(outputDir);
     writingTrainingParameters(
-        outputDir + "trainingParameters.dat",
+        outputDir + "trainingControlDict",
         layerSizes,
+        maxCoords,
+        minCoords,
+        trainingTimeList,
+        predicingTimeList,
         num_epochs,
         learningRate,
         schedulerRate,
         schedulerStep,
-        infoInterval,
-        minCoords,
-        maxCoords
+        infoInterval
     );
     Info << "================= Creating Neural Networks =================" << endl;
     DynamicFNN myFNN(layerSizes);
@@ -74,7 +77,7 @@ int main(int argc, char *argv[])
     if (runingOption == "training" || runingOption == "t")
     {
         Info << "=============== Loading physical properties ================" << endl;
-        const IOdictionary transportProperties = readTransportProperties(mesh, runTime.constant());
+        const IOdictionary transportProperties = readTransportProperties(mesh, runTime.constant(), "transportProperties");
         const dimensionedScalar nu  = readTransportNu(transportProperties);
         const dimensionedScalar rho = readTransportRho(transportProperties);
         Info << "================== Loading training data ===================" << endl;

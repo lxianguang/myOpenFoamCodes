@@ -12,17 +12,20 @@ struct DynamicFNN : torch::nn::Module
 
     DynamicFNN() = default;
     
-    // 构造函数：神经元数量列表 [input_size, hidden1, hidden2, ..., output_size]
-    DynamicFNN(const std::vector<int64_t>& layer_sizes)
+    // 构造函数：适配OpenFOAM List<size_t>类型：神经元数量列表 [input_size, hidden1, hidden2, ..., output_size]
+    DynamicFNN(const Foam::List<Foam::label>& layer_sizes)
     {
         TORCH_CHECK(layer_sizes.size() >= 2, "至少需要输入和输出层");
         net_ = register_module("net", torch::nn::Sequential());
 
         // 构建隐藏层
-        for (size_t i = 0; i < layer_sizes.size() - 1; ++i) 
+        for (Foam::label i = 0; i < layer_sizes.size() - 1; ++i) 
         {
-            // 添加线性层
-            net_->push_back(torch::nn::Linear(layer_sizes[i], layer_sizes[i + 1]));
+            // 添加线性层，将Foam::label转换为int64_t
+            net_->push_back(torch::nn::Linear(
+                static_cast<int64_t>(layer_sizes[i]), 
+                static_cast<int64_t>(layer_sizes[i + 1])
+            ));
             // 除了最后一层外都添加ReLU激活函数
             if (i < layer_sizes.size() - 2) 
             {
@@ -231,7 +234,7 @@ bool loadingTrainedModel(
     normalized.load_from(inputPath2);
     normalized.read("force_max", force_max);
     normalized.read("force_min", force_min);
-    Info << "Loading Normalized parameters from " << inputPath1 << endl;
+    Info << "Loading Normalized parameters from " << inputPath2 << endl;
 
     return true;
 }

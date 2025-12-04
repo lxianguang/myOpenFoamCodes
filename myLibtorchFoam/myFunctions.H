@@ -10,21 +10,114 @@
 using namespace Foam;
 
 /**
+ * @brief 将训练参数写入文件（符合OpenFOAM字典格式）
+ * @param outputPath 输出文件路径
+ * @param layerSizes 神经网络层数及每层神经元数量
+ * @param maxCoords 取样范围最大坐标
+ * @param minCoords 取样范围最小坐标
+ * @param trainingTimeList 训练时刻
+ * @param predictingTimeList 预测时刻
+ * @param num_epochs 训练次数
+ * @param learningRate 学习率
+ * @param schedulerRate 学习率衰减率
+ * @param schedulerStep 学习率衰减步长
+ * @param infoInterval 训练信息输出间隔
+ */
+bool writingTrainingParameters(
+    const fileName& outputPath,
+    const List<label>& layerSizes,
+    const vector& maxCoords,
+    const vector& minCoords,
+    const vector& trainingTimeList,
+    const vector& predictingTimeList,
+    const size_t num_epochs,
+    const double learningRate,
+    const double schedulerRate,
+    const size_t schedulerStep,
+    const size_t infoInterval
+)
+{
+    autoPtr<OFstream> outputFilePtr;
+    outputFilePtr.reset(new OFstream(outputPath));
+    
+    // 写入OpenFOAM字典文件头
+    outputFilePtr() << "/*--------------------------------*- C++ -*----------------------------------*\\" << endl;
+    outputFilePtr() << "| =========                 |                                                 |" << endl;
+    outputFilePtr() << "| \\\\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |" << endl;
+    outputFilePtr() << "|  \\\\    /   O peration     | Version:  v2506                                 |" << endl;
+    outputFilePtr() << "|   \\\\  /    A nd           | Website:  www.openfoam.com                      |" << endl;
+    outputFilePtr() << "|    \\\\/     M anipulation  |                                                 |" << endl;
+    outputFilePtr() << "\\*---------------------------------------------------------------------------*/" << endl;
+    outputFilePtr() << "FoamFile" << endl;
+    outputFilePtr() << "{" << endl;
+    outputFilePtr() << "    version     2.0;" << endl;
+    outputFilePtr() << "    format      ascii;" << endl;
+    outputFilePtr() << "    class       dictionary;" << endl;
+    outputFilePtr() << "    object      trainingControlDict;" << endl;
+    outputFilePtr() << "}" << endl;
+    outputFilePtr() << "// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //" << endl;
+    outputFilePtr() << endl;
+    
+    // 写入神经网络层大小
+    outputFilePtr() << "layerSizes         (";
+    for (label i = 0; i < layerSizes.size(); ++i)
+    {
+        outputFilePtr() << static_cast<int64_t>(layerSizes[i]);
+        if (i < layerSizes.size() - 1) outputFilePtr() << " ";
+    }
+    outputFilePtr() << ");" << endl;
+    outputFilePtr() << endl;
+    
+    // 写入取样范围
+    outputFilePtr() << "minCoords          (" << minCoords.x() << " " << minCoords.y() << " " << minCoords.z() << ");" << endl;
+    outputFilePtr() << "maxCoords          (" << maxCoords.x() << " " << maxCoords.y() << " " << maxCoords.z() << ");" << endl;
+    outputFilePtr() << endl;
+    
+    // 写入时间参数
+    outputFilePtr() << "trainingTimeList   (" << trainingTimeList.x() << " " << trainingTimeList.y() << " " << trainingTimeList.z() << ");" << endl;
+    outputFilePtr() << "predictingTimeList (" << predictingTimeList.x() << " " << predictingTimeList.y() << " " << predictingTimeList.z() << ");" << endl;
+    outputFilePtr() << endl;
+    
+    // 写入训练参数
+    outputFilePtr() << "numEpochs          " << num_epochs << ";" << endl;
+    outputFilePtr() << "learningRate       " << learningRate << ";" << endl;
+    outputFilePtr() << "schedulerRate      " << schedulerRate << ";" << endl;
+    outputFilePtr() << "schedulerStep      " << schedulerStep << ";" << endl;
+    outputFilePtr() << "outputInterval     " << infoInterval << ";" << endl;
+    outputFilePtr() << endl;
+    
+    outputFilePtr() << "// ************************************************************************* //" << endl;
+    
+    Info << "layerSizes          : " << layerSizes << endl;
+    Info << "minCoords           : " << minCoords << endl;
+    Info << "maxCoords           : " << maxCoords << endl;
+    Info << "trainingTimeList    : " << trainingTimeList << endl;
+    Info << "predictingTimeList  : " << predictingTimeList << endl;
+    Info << "numEpochs           : " << num_epochs << endl;
+    Info << "learningRate        : " << learningRate << endl;
+    Info << "schedulerRate       : " << schedulerRate << endl;
+    Info << "schedulerStep       : " << schedulerStep << endl;
+    Info << "outputInterval      : " << infoInterval << endl;
+
+    Info << "Backup training parameters to " << outputPath << endl;
+
+    return true;
+}
+
+/**
  * @brief 生成指定时间范围的时间列表
  * @param startTime 起始时间
  * @param deltaTime 时间间隔
  * @param timeNum 列表长度
  */
 instantList creatTimeDirList(
-    float startTime,
-    float deltaTime,
-    int timeNum
+    const vector& timeList
 )
 {
     instantList timeDirs;
-    for (int i = 0; i < timeNum; i++) 
+    for (int i = 0; i < static_cast<int>(timeList[2]); i++) 
     {
-        float time = startTime + i * deltaTime;
+        float time = timeList[0] + i * timeList[1];
         std::ostringstream oss;
         oss << time;  // 自动选择合适的精度
         std::string timeStr = oss.str();
@@ -35,64 +128,21 @@ instantList creatTimeDirList(
 }
 
 /**
- * @brief 将训练参数写入文件
- * @param outputPath 输出文件路径
- * @param layerSizes 神经网络层数及每层神经元数量
- * @param num_epochs 训练次数
- * @param learningRate 学习率
- * @param schedulerRate 学习率衰减率
- * @param schedulerStep 学习率衰减步长
- * @param infoInterval 训练信息输出间隔
- * @param minCoords 取样范围最小坐标
- * @param maxCoords 取样范围最大坐标
- */
-bool writingTrainingParameters(
-    const fileName& outputPath,
-    const std::vector<int64_t>& layerSizes,
-    const size_t num_epochs,
-    const double learningRate,
-    const double schedulerRate,
-    const size_t schedulerStep,
-    const size_t infoInterval,
-    const vector& minCoords,
-    const vector& maxCoords
-)
-{
-    Info << "Epochs numbers      : " << num_epochs    << endl;
-    Info << "Learning Rate       : " << learningRate  << endl;
-    Info << "Scheduler Rate      : " << schedulerRate << endl;
-    Info << "Scheduler Step      : " << schedulerStep << endl;
-    Info << "Infos Interval      : " << infoInterval  << endl;
-    Info << "Sampling range      : minCoords = " << minCoords << ", maxCoords = " << maxCoords << endl;
-    Info << "Writing training parameters to " << outputPath << endl;
-    autoPtr<OFstream> outputFilePtr;
-    outputFilePtr.reset(new OFstream(outputPath));
-    outputFilePtr() << "Neural Network Layer Sizes : " << layerSizes    << endl;
-    outputFilePtr() << "Number of Epochs           : " << num_epochs    << endl;
-    outputFilePtr() << "Learning Rate              : " << learningRate  << endl;
-    outputFilePtr() << "Scheduler Rate             : " << schedulerRate << endl;
-    outputFilePtr() << "Scheduler Step             : " << schedulerStep << endl;
-    outputFilePtr() << "Information Interval       : " << infoInterval  << endl;
-    outputFilePtr() << "Sampling range             : minCoords = " << minCoords << ", maxCoords = " << maxCoords << endl;
-
-    return true;
-}
-
-/**
- * @brief 文件中读取流体粘性和密度等输运属性
+ * @brief 创建词典文件然后从中读取参数
  * @param mesh #include "createMesh.H"读取的网格
  * @param constantDir 数据文件路径
  */
 IOdictionary readTransportProperties(
     const fvMesh& mesh,
-    const fileName& constantDir
+    const fileName& constantDir,
+    const word& fileName
 )
 {
     // 从transportProperties文件中读取数据
     // 先定义一个IOdictionary对象，其构造函数参数为一个IOobject对象
     IOdictionary transportProperties(
         IOobject(
-            "transportProperties",              // 字典文件名
+            fileName,                           // 字典文件名
             constantDir,                        // 字典文件所在路径，这里为constant文件夹下
             mesh,                               // 一个objectRegistry类对象，在"createMesh.H"中定义
             IOobject::MUST_READ_IF_MODIFIED,    // 如果文件被修改，则必须重新读取
