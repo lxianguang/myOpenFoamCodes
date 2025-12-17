@@ -1,0 +1,31 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2506                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      trainingControlDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+layerSizes         (4 32 32 32 32 2);
+
+minCoords          (-1 -1.5 0);
+maxCoords          (3.5 1.5 1);
+
+trainingTimeList   (20 0.4 11);
+predictingTimeList (20 0.1 51);
+
+numEpochs           5000;
+learningRate        0.004;
+schedulerRate       0.9;
+schedulerStep       250;
+outputInterval      10;
+
+// ************************************************************************* //

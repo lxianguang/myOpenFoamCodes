@@ -1,13 +1,13 @@
 ## Table of contents
   * [The weight pressure source theory](#WPS-Theory)
-  * [Libtorch for OpenFOAM v2406](#Libtorch)
+  * [Libtorch for OpenFOAM v2506](#Libtorch)
 
 
 ## WPS Theory
  to do !
 
 ## Libtorch
-LibTorch can be used in the environment of OpenFOAM. Instead of using PyTorch, using libtorch seems to be straightforward in the environment of OpenFOAM since both of them are written in C++. In this tutorial, the programming of LibTorch and OpenFOAM is demonstrated step by step. It was tested by OpenFOAM v2406.
+LibTorch can be used in the environment of OpenFOAM. Instead of using PyTorch, using libtorch seems to be straightforward in the environment of OpenFOAM since both of them are written in C++. In this tutorial, the programming of LibTorch and OpenFOAM is demonstrated step by step. It was tested in OpenFOAM v2306, v2406, v2506.
 
 1. Download libtorch: https://download.pytorch.org/libtorch/cpu/libtorch-shared-with-deps-2.9.1%2Bcpu.zip
 (unzip it, in my case, I put it under: my/path/OpenFOAM/libtorch)：
