@@ -200,6 +200,31 @@ bool savingTrainedModel(
  * @brief 训练神经网络
  * @param outputPath1 模型文件保存路径
  * @param myFNN 神经网络对象
+ */
+
+bool loadingTrainedModel(
+    const fileName& inputPath1,
+    DynamicFNN& myFNN
+)
+{
+    if(!isFile(inputPath1))
+    {
+        FatalErrorIn("loadingTrainedModel")
+        << "Model file " << inputPath1 << " not found ! " 
+        << exit(FatalError);
+    }
+    torch::serialize::InputArchive archive;
+    archive.load_from(inputPath1);
+    myFNN.load(archive);
+    Info << "Loading trained model from " << inputPath1 << endl;
+    
+    return true;
+}
+
+/**
+ * @brief 训练神经网络
+ * @param outputPath1 模型文件保存路径
+ * @param myFNN 神经网络对象
  * @param outputPath1 归一化参数文件保存路径
  * @param force_max 归一化参数
  * @param force_max 归一化参数

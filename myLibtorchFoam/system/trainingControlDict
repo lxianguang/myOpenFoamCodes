@@ -16,16 +16,19 @@ FoamFile
 
 layerSizes         (4 32 32 32 32 2);
 
-minCoords          (-1 -1.5 0);
+isContinue         yes;
+
+dataInterval       2;
+minCoords          (-0.5 -1.5 0);
 maxCoords          (3.5 1.5 1);
 
 trainingTimeList   (20 0.4 11);
 predictingTimeList (20 0.1 51);
 
-numEpochs           5000;
-learningRate        0.004;
-schedulerRate       0.9;
-schedulerStep       250;
-outputInterval      10;
+numEpochs          5000;
+learningRate       0.004;
+schedulerRate      0.80;
+schedulerStep      250;
+outputInterval     10;
 
 // ************************************************************************* //

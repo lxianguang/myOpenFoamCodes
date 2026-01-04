@@ -32,8 +32,10 @@ int main(int argc, char *argv[])
     Info << "================ Loading training parameters ===============" << endl;
     Info << "Loading training parameters from ./" << runTime.system() + "/trainingControlDict" << endl;
     IOdictionary trainingControlDict = readTransportProperties(mesh, runTime.system(), "trainingControlDict");  // 创建自定义字典对象
-    const List<label> layerSizes   = trainingControlDict.get<List<label>>("layerSizes");    // 网络层数及每层神经元数量
+    const List<label> layerSizes   = trainingControlDict.get<List<label>>("layerSizes");     // 网络层数及每层神经元数量
+    const bool   isContinue        = trainingControlDict.get<bool>("isContinue");            // 是否继续上次训练
     const size_t num_epochs        = trainingControlDict.get<scalar>("numEpochs");           // 训练次数
+    const size_t dataInterval      = trainingControlDict.get<scalar>("dataInterval");        // 数据采样间隔
     const float  learningRate      = trainingControlDict.get<scalar>("learningRate");        // 学习率
     const float  schedulerRate     = trainingControlDict.get<scalar>("schedulerRate");       // 学习率衰减率
     const size_t schedulerStep     = trainingControlDict.get<scalar>("schedulerStep");       // 学习率衰减步长
@@ -74,22 +76,31 @@ int main(int argc, char *argv[])
     Info << "FNN layerSizes      : " << layerSizes << endl;
     
     // 判断是训练还是预测
+    torch::Tensor force_max, force_min;
     if (runingOption == "training" || runingOption == "t")
     {
         Info << "=============== Loading physical properties ================" << endl;
         const IOdictionary transportProperties = readTransportProperties(mesh, runTime.constant(), "transportProperties");
         const dimensionedScalar nu  = readTransportNu(transportProperties);
         const dimensionedScalar rho = readTransportRho(transportProperties);
+        if(isContinue)
+        {
+            Info << "=============== Loading training parameters ================" << endl;
+            loadingTrainedModel(
+                outputDir + "trainedFNN.pt",
+                myFNN
+            );
+        }
         Info << "================== Loading training data ===================" << endl;
         std::vector<torch::Tensor> trainingInputTensorList;
         torch::Tensor trainingOutputTensor, trainingNormalizedTensor;
-        torch::Tensor force_max, force_min;
         creatingTrainingTensor(
             mesh, 
             runTime,
             trainingTimeDirs,
             minCoords, 
             maxCoords, 
+            dataInterval,
             forcesDir, 
             trainingInputTensorList, 
             trainingOutputTensor
@@ -129,7 +140,6 @@ int main(int argc, char *argv[])
     else if (runingOption == "predicting" || runingOption == "p")
     {
         Info << "=============== Loading training parameters ===============" << endl;
-        torch::Tensor force_max, force_min;
         loadingTrainedModel(
             outputDir + "trainedFNN.pt",
             myFNN,
@@ -146,6 +156,7 @@ int main(int argc, char *argv[])
             validatingTimeDirs,
             minCoords, 
             maxCoords, 
+            dataInterval,
             forcesDir, 
             validatingInputTensorList, 
             validatingOutputTensor

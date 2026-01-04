@@ -272,6 +272,7 @@ vector readForcesAtTime(
  * @param timeDirs 读取的时间列表
  * @param minCoords 取样范围最小坐标
  * @param maxCoords 取样范围最大坐标
+ * @param dataInterval 数据采样间隔
  * @param forcesDir 受力数据文件路径
  * @param inputTensorList 返回的输入张量列表
  * @param outputTensor 返回的输出张量
@@ -282,6 +283,7 @@ bool creatingTrainingTensor(
     const instantList& timeDirs,
     const vector& minCoords,
     const vector& maxCoords,
+    const size_t dataInterval,
     const fileName& forcesDir,
     std::vector<torch::Tensor>& inputTensorList,
     torch::Tensor& outputTensor
@@ -328,6 +330,8 @@ bool creatingTrainingTensor(
                 coordinate[cellI].y() >= minCoords.y() && coordinate[cellI].y() <= maxCoords.y() &&
                 coordinate[cellI].z() >= minCoords.z() && coordinate[cellI].z() <= maxCoords.z())
             {
+                // 按照指定间隔采样数据
+                if (cellI % dataInterval != 0) continue;
                 //inputData.push_back(runTime.value());
                 inputData.push_back(coordinate[cellI].x());
                 inputData.push_back(coordinate[cellI].y());
