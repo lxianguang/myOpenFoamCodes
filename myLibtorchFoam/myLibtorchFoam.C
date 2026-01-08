@@ -29,13 +29,15 @@ int main(int argc, char *argv[])
     #include "createTime.H"
     #include "createMesh.H"
 
+    // 设置训练随机数种子
+    torch::manual_seed(36);
+
     Info << "================ Loading training parameters ===============" << endl;
     Info << "Loading training parameters from ./" << runTime.system() + "/trainingControlDict" << endl;
     IOdictionary trainingControlDict = readTransportProperties(mesh, runTime.system(), "trainingControlDict");  // 创建自定义字典对象
     const List<label> layerSizes   = trainingControlDict.get<List<label>>("layerSizes");     // 网络层数及每层神经元数量
     const bool   isContinue        = trainingControlDict.get<bool>("isContinue");            // 是否继续上次训练
     const size_t num_epochs        = trainingControlDict.get<scalar>("numEpochs");           // 训练次数
-    const size_t dataInterval      = trainingControlDict.get<scalar>("dataInterval");        // 数据采样间隔
     const float  learningRate      = trainingControlDict.get<scalar>("learningRate");        // 学习率
     const float  schedulerRate     = trainingControlDict.get<scalar>("schedulerRate");       // 学习率衰减率
     const size_t schedulerStep     = trainingControlDict.get<scalar>("schedulerStep");       // 学习率衰减步长
@@ -44,14 +46,14 @@ int main(int argc, char *argv[])
     const vector predicingTimeList = trainingControlDict.get<vector>("predictingTimeList");
     const vector maxCoords         = trainingControlDict.get<vector>("maxCoords");           // 定义流场取样范围
     const vector minCoords         = trainingControlDict.get<vector>("minCoords");
+    const size_t dataInterval      = trainingControlDict.get<scalar>("dataInterval");        // 数据采样间隔
 
     // 定义计算时间范围和受力文件路径
     const fileName forcesDir             = "./postProcessing/forcesWing/0/force.dat";
     const fileName outputDir             = "./postProcessing/trainedFNN/";
+    // const instantList timeDirs = timeSelector::select0(runTime, args);
     const instantList trainingTimeDirs   = creatTimeDirList(trainingTimeList);
-    const instantList validatingTimeDirs = creatTimeDirList(predicingTimeList);
-    // instantList timeDirs = timeSelector::select0(runTime, args);
-    // instantList trainingTimeDirs({instant("20"), instant("20.5"), instant("21"), instant("21.5"), instant("22"), instant("22.5")});
+    const instantList predictingTimeDirs = creatTimeDirList(predicingTimeList);
     
     // 输出训练参数
     if (!isDir(outputDir)) mkDir(outputDir);
@@ -60,6 +62,7 @@ int main(int argc, char *argv[])
         layerSizes,
         maxCoords,
         minCoords,
+        dataInterval,
         trainingTimeList,
         predicingTimeList,
         num_epochs,
@@ -147,32 +150,32 @@ int main(int argc, char *argv[])
             force_max,
             force_min
         );
-        Info << "================ Validating Neural Network =================" << endl;
-        std::vector<torch::Tensor> validatingInputTensorList;
-        torch::Tensor validatingOutputTensor, predicted_forces;
+        Info << "================ predicting Neural Network =================" << endl;
+        std::vector<torch::Tensor> predictingInputTensorList;
+        torch::Tensor predictingOutputTensor, predicted_forces;
         creatingTrainingTensor(
             mesh, 
             runTime,
-            validatingTimeDirs,
+            predictingTimeDirs,
             minCoords, 
             maxCoords, 
             dataInterval,
             forcesDir, 
-            validatingInputTensorList, 
-            validatingOutputTensor
+            predictingInputTensorList, 
+            predictingOutputTensor
         );
-        myFNN_validating(
+        myFNN_predicting(
             myFNN,
-            validatingTimeDirs,
-            validatingInputTensorList,
-            validatingOutputTensor,
+            predictingTimeDirs,
+            predictingInputTensorList,
+            predictingOutputTensor,
             force_max,
             force_min,
             predicted_forces
         );
         writingPointsInformation(
-            outputDir + "validatingPoints.dat",
-            validatingTimeDirs,
+            outputDir + "predictingPoints.dat",
+            predictingTimeDirs,
             predicted_forces
         );
     }

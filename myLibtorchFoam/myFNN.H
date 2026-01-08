@@ -117,17 +117,17 @@ bool myFNN_training(
 /**
  * @brief 训练神经网络
  * @param myFNN 神经网络对象
- * @param validatingInputTensorList 验证输入数据集
- * @param validatingOutputTensor 验证输出数据集
+ * @param predictingInputTensorList 验证输入数据集
+ * @param predictingOutputTensor 验证输出数据集
  * @param force_max 反归一化参数
  * @param force_min 反归一化参数
  * @param normalized_forces 反归一化后的预测结果
  */
-bool myFNN_validating(
+bool myFNN_predicting(
     DynamicFNN& myFNN,
     const instantList& timeDirs,
-    std::vector<torch::Tensor>& validatingInputTensorList,
-    torch::Tensor& validatingOutputTensor,
+    std::vector<torch::Tensor>& predictingInputTensorList,
+    torch::Tensor& predictingOutputTensor,
     torch::Tensor& force_max,
     torch::Tensor& force_min,
     torch::Tensor& predicted_forces
@@ -135,10 +135,10 @@ bool myFNN_validating(
 {
     myFNN.eval();
     std::vector<float> outputData;
-    for (size_t timeCount = 0; timeCount < validatingInputTensorList.size(); ++timeCount)
+    for (size_t timeCount = 0; timeCount < predictingInputTensorList.size(); ++timeCount)
     {
-        torch::Tensor validate_input    = validatingInputTensorList[timeCount];
-        torch::Tensor validate_forces   = validatingOutputTensor[timeCount];
+        torch::Tensor validate_input    = predictingInputTensorList[timeCount];
+        torch::Tensor validate_forces   = predictingOutputTensor[timeCount];
         
         torch::Tensor predicted_output1 = myFNN.forward(validate_input);
         torch::Tensor predicted_output2 = predicted_output1.mean(0);
@@ -217,7 +217,7 @@ bool loadingTrainedModel(
     archive.load_from(inputPath1);
     myFNN.load(archive);
     Info << "Loading trained model from " << inputPath1 << endl;
-    
+
     return true;
 }
 

@@ -1,4 +1,4 @@
-/*--------------------------------*- C++ -*----------------------------------*\
+ /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
 |  \\    /   O peration     | Version:  v2506                                 |
@@ -14,21 +14,22 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-layerSizes         (4 32 32 32 32 2);
+layerSizes         (4 24 24 24 24 24 2);
 
 isContinue         yes;
 
-dataInterval       2;
-minCoords          (-0.5 -1.5 0);
+dataInterval       1;
+
+minCoords          (-1 -1.5 0);
 maxCoords          (3.5 1.5 1);
 
 trainingTimeList   (20 0.4 11);
 predictingTimeList (20 0.1 51);
 
-numEpochs          5000;
-learningRate       0.004;
-schedulerRate      0.80;
-schedulerStep      250;
+numEpochs          1000;
+learningRate       0.0005;
+schedulerRate      1.00;
+schedulerStep      200;
 outputInterval     10;
 
 // ************************************************************************* //

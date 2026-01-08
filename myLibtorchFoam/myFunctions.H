@@ -15,6 +15,7 @@ using namespace Foam;
  * @param layerSizes 神经网络层数及每层神经元数量
  * @param maxCoords 取样范围最大坐标
  * @param minCoords 取样范围最小坐标
+ * @param dataInterval 数据采样间隔
  * @param trainingTimeList 训练时刻
  * @param predictingTimeList 预测时刻
  * @param num_epochs 训练次数
@@ -28,6 +29,7 @@ bool writingTrainingParameters(
     const List<label>& layerSizes,
     const vector& maxCoords,
     const vector& minCoords,
+    const size_t dataInterval,
     const vector& trainingTimeList,
     const vector& predictingTimeList,
     const size_t num_epochs,
@@ -68,6 +70,10 @@ bool writingTrainingParameters(
     outputFilePtr() << ");" << endl;
     outputFilePtr() << endl;
     
+    // 写入数据采样间隔
+    outputFilePtr() << "dataInterval       " << dataInterval << ";" << endl;
+    outputFilePtr() << endl;
+
     // 写入取样范围
     outputFilePtr() << "minCoords          (" << minCoords.x() << " " << minCoords.y() << " " << minCoords.z() << ");" << endl;
     outputFilePtr() << "maxCoords          (" << maxCoords.x() << " " << maxCoords.y() << " " << maxCoords.z() << ");" << endl;
@@ -380,7 +386,7 @@ bool normalizedTrainingTensor(
     torch::Tensor& force_min
 )
 {
-    Info << "Normalizinga output tensor ---------------------------------" << endl;
+    Info << "Normalizing output tensor ----------------------------------" << endl;
     force_max = std::get<0>(outputTensor.max(0));
     force_min = std::get<0>(outputTensor.min(0));
     normalizedTensor = 2.0 * (outputTensor - force_min) / (force_max - force_min) - 1.0;
