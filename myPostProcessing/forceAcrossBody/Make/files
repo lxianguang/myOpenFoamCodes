@@ -1,2 +1,2 @@
 forceAcrossBody.C
-EXE = $(FOAM_USER_APPBIN)/forceAcrossBody
+EXE = $(WM_PROJECT_DIR)/myCodes/forceAcrossBody
