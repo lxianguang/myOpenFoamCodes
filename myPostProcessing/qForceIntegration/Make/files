@@ -1,2 +1,2 @@
 qForceIntegration.C
-EXE = $(WM_PROJECT_DIR)/myCodes/qForceIntegration
+EXE = $(FOAM_USER_APPBIN)/qForceIntegration

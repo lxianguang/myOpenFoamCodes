@@ -1,2 +1,2 @@
 wpsDecompose.C
-EXE = $(WM_PROJECT_DIR)/myCodes/wpsDecompose
+EXE = $(FOAM_USER_APPBIN)/wpsDecompose

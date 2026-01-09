@@ -1,2 +1,2 @@
 forceInSpanwise.C
-EXE = $(WM_PROJECT_DIR)/myCodes/forceInSpanwise
+EXE = $(FOAM_USER_APPBIN)/forceInSpanwise

@@ -1,2 +1,2 @@
 planeIntegration.C
-EXE = $(WM_PROJECT_DIR)/myCodes/planeIntegration
+EXE = $(FOAM_USER_APPBIN)/planeIntegration
