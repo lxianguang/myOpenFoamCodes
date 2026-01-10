@@ -33,7 +33,7 @@ int main(int argc, char *argv[])
     torch::manual_seed(36);
 
     Info << "================ Loading training parameters ===============" << endl;
-    Info << "Loading training parameters from ./" << runTime.system() + "/trainingControlDict" << endl;
+    Info << "Loading training parameters from " << runTime.system() + "/trainingControlDict" << endl;
     IOdictionary trainingControlDict = readTransportProperties(mesh, runTime.system(), "trainingControlDict");  // 创建自定义字典对象
     const List<label> layerSizes   = trainingControlDict.get<List<label>>("layerSizes");     // 网络层数及每层神经元数量
     const bool   isContinue        = trainingControlDict.get<bool>("isContinue");            // 是否继续上次训练

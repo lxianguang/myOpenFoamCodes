@@ -57,7 +57,7 @@ int main(int argc, char *argv[])
     #include "createMesh.H"   
 
     Info << "================ Loading integration parameters ===============" << endl;
-    Info << "Loading parameters from ./" << runTime.system() + "/integrationControlDict" << endl;
+    Info << "Loading parameters from " << runTime.system() + "/integrationControlDict" << endl;
 
     IOdictionary integrationControlDict
     (
@@ -76,7 +76,7 @@ int main(int argc, char *argv[])
     const scalar interval    = integrationControlDict.get<scalar>("interval");  // 数据采样间隔
     const scalar endX        = integrationControlDict.get<scalar>("endX");      // 积分结束位置
     const scalar raidus      = integrationControlDict.get<scalar>("radius");    // 积分区域半径
-    //const scalar tolerance   = integrationControlDict.get<scalar>("tolerance"); 
+    const scalar tolerance   = integrationControlDict.get<scalar>("tolerance"); 
     const fileName outputDir = "./postProcessing/integration/"; // 定义积分时间与输出文件路径
 
     instantList timeDirs(1);
@@ -86,7 +86,7 @@ int main(int argc, char *argv[])
     if (!isDir(outputDir)) mkDir(outputDir);
     autoPtr<OFstream> outputFilePtr;
     outputFilePtr.reset(new OFstream(outputDir/"planeIntegration.dat"));
-    outputFilePtr() << "Variables = coordinate, area, drag, lift, indicator1, indicator2, indicator3" << "\n" << endl;
+    outputFilePtr() << "Variables = coordinate, area, indicator1, indicator2, indicator3, indicator4, drag, lift" << "\n" << endl;
 
     Info << "==================== Loading velocity field ===================" << endl;
     forAll(timeDirs, timeI)
@@ -118,7 +118,7 @@ int main(int argc, char *argv[])
             point  planePoint(xPos, 0, 0);
             vector normal(1, 0, 0);                             // 法向量指向x方向
             
-            Info << "creating YZ plane [" << planeI + 1 << "/" << nPlanes << "]: x = " << xPos << endl;
+            Info << "cutting YZ plane [" << planeI + 1 << "/" << nPlanes << "]: x = " << xPos << "-----------------------------------" << endl;
 
             sampledPlane yzPlane // 创建采样平面
             (
@@ -144,35 +144,42 @@ int main(int argc, char *argv[])
             scalar indicator1 = 0.0;
             scalar indicator2 = 0.0;
             scalar indicator3 = 0.0;
+            scalar indicator4 = 0.0;
 
             forAll(omegaSampled, faceI)
             {
                 dragforces += -500 * (planeCenters[faceI].y() * omegaSampled[faceI].z() - planeCenters[faceI].z() * omegaSampled[faceI].y()) * areasSampled[faceI];
                 liftforces += -1000 * planeCenters[faceI].z() * omegaSampled[faceI].x() * areasSampled[faceI];
-                //if (mag(omegaSampled[faceI].y()) >= tolerance)
                 if (mag(planeCenters[faceI] - point(xPos, 0, 0)) <= raidus)
                 {
                     indicator1 += mag(omegaSampled[faceI].x()) * areasSampled[faceI];
                     indicator2 += mag(omegaSampled[faceI].y()) * areasSampled[faceI];
                     indicator3 += mag(omegaSampled[faceI].z()) * areasSampled[faceI];
-                    totalAreas += areasSampled[faceI];
+                    if (mag(omegaSampled[faceI].y()) > tolerance && mag(omegaSampled[faceI].z()) > tolerance)
+                    {
+                        indicator4 += mag(omegaSampled[faceI].x()/(omegaSampled[faceI].y() + 1e-6)) * areasSampled[faceI];
+                        totalAreas += areasSampled[faceI];
+                    }
                 }
             }
 
-            scalar output1 = indicator1 / indicator2;
-            scalar output2 = indicator1 / indicator3;
-            scalar output3 = indicator3 / indicator2;
-            Info << "absolute vorticity integration (x, y, z): " << indicator1 << "    " << indicator2 << "    " << indicator3 << endl;
-            Info << "indicators (output1, output2, output3)  : " << output1    << "    " << output2    << "    " << output3    << endl;
+            scalar output1 = indicator4 / totalAreas;
+            scalar output2 = indicator3 / indicator2;
+            scalar output3 = indicator1 / indicator2;
+            scalar output4 = indicator1 / indicator3;
+            
+            // Info << "absolute vorticity integration (x, y, z): " << indicator1 << "    " << indicator2 << "    " << indicator3 << endl;
+            Info << "area, output1, output2, output3, output4  : " << totalAreas << "    " << output1    << "    " << output2    << "    " << output3    << "    " << output4 << endl;
             
             // 输出结果
             outputFilePtr() << xPos << "    "
                             << totalAreas << "    "
+                            << output1 << "    "
+                            << output2 << "    "
+                            << output3 << "    "
+                            << output4 << "    "
                             << dragforces << "    "
-                            << liftforces << "    "
-                            << indicator1 / indicator2 << "    "
-                            << indicator1 / indicator3 << "    "
-                            << indicator3 / indicator2 << endl;
+                            << liftforces << endl;
         }
     }
 
