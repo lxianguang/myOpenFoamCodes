@@ -86,7 +86,7 @@ int main(int argc, char *argv[])
     if (!isDir(outputDir)) mkDir(outputDir);
     autoPtr<OFstream> outputFilePtr;
     outputFilePtr.reset(new OFstream(outputDir/"planeIntegration.dat"));
-    outputFilePtr() << "Variables = coordinate, area, indicator1, indicator2, indicator3, indicator4, drag, lift" << "\n" << endl;
+    outputFilePtr() << "Variables = coordinate, area, indicator1, indicator2, indicator3, indicator4, indicator4, omega_x, omega_y, omega_z, drag, lift" << "\n" << endl;
 
     Info << "==================== Loading velocity field ===================" << endl;
     forAll(timeDirs, timeI)
@@ -118,7 +118,7 @@ int main(int argc, char *argv[])
             point  planePoint(xPos, 0, 0);
             vector normal(1, 0, 0);                             // 法向量指向x方向
             
-            Info << "cutting YZ plane [" << planeI + 1 << "/" << nPlanes << "]: x = " << xPos << "-----------------------------------" << endl;
+            Info << "cutting YZ plane [" << planeI + 1 << "/" << nPlanes << "]: x = " << xPos << " -----------------------------------" << endl;
 
             sampledPlane yzPlane // 创建采样平面
             (
@@ -141,10 +141,13 @@ int main(int argc, char *argv[])
             scalar dragforces = 0.0;
             scalar liftforces = 0.0;
             scalar totalAreas = 0.0;
-            scalar indicator1 = 0.0;
-            scalar indicator2 = 0.0;
-            scalar indicator3 = 0.0;
-            scalar indicator4 = 0.0;
+            scalar summation1 = 0.0;
+            scalar summation2 = 0.0;
+            scalar summation3 = 0.0;
+            scalar summation4 = 0.0;
+            scalar summation5 = 0.0;
+
+            vector averOmegas = sum(omegaSampled * areasSampled) / sum(areasSampled);
 
             forAll(omegaSampled, faceI)
             {
@@ -152,32 +155,36 @@ int main(int argc, char *argv[])
                 liftforces += -1000 * planeCenters[faceI].z() * omegaSampled[faceI].x() * areasSampled[faceI];
                 if (mag(planeCenters[faceI] - point(xPos, 0, 0)) <= raidus)
                 {
-                    indicator1 += mag(omegaSampled[faceI].x()) * areasSampled[faceI];
-                    indicator2 += mag(omegaSampled[faceI].y()) * areasSampled[faceI];
-                    indicator3 += mag(omegaSampled[faceI].z()) * areasSampled[faceI];
+                    summation1 += mag(omegaSampled[faceI].x()) * areasSampled[faceI];
+                    summation2 += mag(omegaSampled[faceI].y()) * areasSampled[faceI];
+                    summation3 += mag(omegaSampled[faceI].z()) * areasSampled[faceI];
+                    summation4 += mag(omegaSampled[faceI].z() - averOmegas.z()) * areasSampled[faceI];
                     if (mag(omegaSampled[faceI].y()) > tolerance && mag(omegaSampled[faceI].z()) > tolerance)
                     {
-                        indicator4 += mag(omegaSampled[faceI].x()/(omegaSampled[faceI].y() + 1e-6)) * areasSampled[faceI];
+                        summation5 += mag(omegaSampled[faceI].x()/(omegaSampled[faceI].y())) * areasSampled[faceI];
                         totalAreas += areasSampled[faceI];
                     }
                 }
             }
 
-            scalar output1 = indicator4 / totalAreas;
-            scalar output2 = indicator3 / indicator2;
-            scalar output3 = indicator1 / indicator2;
-            scalar output4 = indicator1 / indicator3;
+            scalar indicator1 = summation5 / totalAreas;
+            scalar indicator2 = summation4 / summation2;
+            scalar indicator3 = summation3 / summation2;
+            scalar indicator4 = summation1 / summation2;
             
-            // Info << "absolute vorticity integration (x, y, z): " << indicator1 << "    " << indicator2 << "    " << indicator3 << endl;
-            Info << "area, output1, output2, output3, output4  : " << totalAreas << "    " << output1    << "    " << output2    << "    " << output3    << "    " << output4 << endl;
+            Info << "absulote summations : " << summation1 << "    " << summation2 << "    " << summation3 << "    " << summation4 << "    " << summation5 << endl;
+            Info << "area and outputs    : " << totalAreas << "    " << indicator1 << "    " << indicator2 << "    " << indicator3 << "    " << indicator4 << endl;
             
             // 输出结果
             outputFilePtr() << xPos << "    "
                             << totalAreas << "    "
-                            << output1 << "    "
-                            << output2 << "    "
-                            << output3 << "    "
-                            << output4 << "    "
+                            << indicator1 << "    "
+                            << indicator2 << "    "
+                            << indicator3 << "    "
+                            << indicator4 << "    "
+                            << summation1 << "    "
+                            << summation2 << "    "
+                            << summation3 << "    "
                             << dragforces << "    "
                             << liftforces << endl;
         }
