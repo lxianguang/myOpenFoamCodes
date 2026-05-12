@@ -18,7 +18,7 @@ do
         meshpath=$filepath/constant/polyMesh
         pointspath=$folderpath/polyMesh/points
         cp -f $filepath/system/decomposeParDict system/
-        echo "Laplacian solver begin for $folderpath"
+        echo "Laplacian solver begin for $folderpath ----------------------"
         # solver for x dimension ==========================================
         ./Allclean
         cp -f 0.orig/bakups/T_x 0.orig/T
@@ -40,7 +40,7 @@ do
         #cp -f $pointspath constant/polyMesh/
         #./Allrun
         #cp -f $solverend/T $folderpath/Tz
-        echo "Laplacian solver end   for $folderpath"
+        echo "Laplacian solver end for $folderpath ------------------------"
     fi
 done
 

@@ -5,7 +5,7 @@
     \\  /    A nd           | www.openfoam.com
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
-    Copyright (C) 2024 by xianGuang Luo.
+    Copyright (C) 2026 by xianGuang Luo.
 -------------------------------------------------------------------------------
 License
     This file is part of OpenFOAM.
@@ -77,7 +77,7 @@ int main(int argc, char *argv[])
     const scalar endX        = integrationControlDict.get<scalar>("endX");      // 积分结束位置
     const scalar raidus      = integrationControlDict.get<scalar>("radius");    // 积分区域半径
     const scalar tolerance   = integrationControlDict.get<scalar>("tolerance"); 
-    const fileName outputDir = "./postProcessing/integration/"; // 定义积分时间与输出文件路径
+    const fileName outputDir = "./postProcessing/integration/";                 // 定义积分时间与输出文件路径
 
     instantList timeDirs(1);
     timeDirs[0] = instant(myruntime);
@@ -86,7 +86,7 @@ int main(int argc, char *argv[])
     if (!isDir(outputDir)) mkDir(outputDir);
     autoPtr<OFstream> outputFilePtr;
     outputFilePtr.reset(new OFstream(outputDir/"planeIntegration.dat"));
-    outputFilePtr() << "Variables = coordinate, area, indicator1, indicator2, indicator3, indicator4, indicator4, omega_x, omega_y, omega_z, drag, lift" << "\n" << endl;
+    outputFilePtr() << "Variables = coordinate, area, indicator1, indicator2, indicator3, indicator4, drag, lift, omega_x, omega_y, omega_z" << "\n" << endl;
 
     Info << "==================== Loading velocity field ===================" << endl;
     forAll(timeDirs, timeI)
@@ -182,11 +182,11 @@ int main(int argc, char *argv[])
                             << indicator2 << "    "
                             << indicator3 << "    "
                             << indicator4 << "    "
+                            << dragforces << "    "
+                            << liftforces << "    "
                             << summation1 << "    "
                             << summation2 << "    "
-                            << summation3 << "    "
-                            << dragforces << "    "
-                            << liftforces << endl;
+                            << summation3 << endl;
         }
     }
 
