@@ -1,12 +1,35 @@
 #!/bin/sh
 #------------------------------------------------------------------------------
 
-for folderpath in 9* 10*
+# ============= 复制权函数所在的时间刻 ============
+cpfolder="100"
+# =============== 时间刻数量统计 =================
+count=0
+
+# ============ 循环遍历算例中所有时间刻 ===========
+echo "==========================================================================================="
+for folderpath in */
 do
-echo $folderpath 是目录
-cp -f Tx $folderpath/Tx
-cp -f Ty $folderpath/Ty
-cp -f Tz $folderpath/Tz
+    # 去掉末尾的 /，提取纯文件夹名
+    folder="${folderpath%/}"
+    foldername="${folder##*/}"
+    # 跳过包含非法字符的文件夹名（只允许数字和小数点）
+    case "$foldername" in
+        0)         continue ;;   # 跳过初始文件夹
+        $cpfolder) continue ;;   # 跳过源文件夹
+        *[!0-9.]*) continue ;;   # 含非数字、非小数点字符则跳过
+        *..*)      continue ;;   # 含多个连续小数点则跳过
+        .*|*.)     continue ;;   # 以点开头或结尾则跳过
+    esac
+    echo "Copying $cpfolder to $folderpath"
+    count=$((count + 1))
+    cp -f $cpfolder/Tx $folderpath/Tx
+    cp -f $cpfolder/Ty $folderpath/Ty
+    cp -f $cpfolder/Tz $folderpath/Tz
 done
+
+echo "==========================================================================================="
+echo "Total folders processed: $count"
+echo "==========================================================================================="
 
 #------------------------------------------------------------------------------

@@ -1,47 +1,71 @@
 #!/bin/sh
 #------------------------------------------------------------------------------
 
-solverend=20
-filepath="../Re100Std0.16AoA02-Axmax"
-
-#------------------------------------------------------------------------------
-
-for folderpath in $filepath/[8-9]*
+# ============== 需要求解的算例目录 ==============
+filepath="../Re1000Std1.00AoA10Phi0.00-c"
+# ========= 求解方向开关（1=开启，0=关闭）=========
+solveX=1
+solveY=1
+solveZ=0
+# =============== 时间刻数量统计 =================
+counti=0
+# ============ 读取控制文件中的endTime ===========
+solverend=$(sed -n 's/^endTime[[:space:]]*\([0-9][0-9]*\(\.[0-9][0-9]*\)\?\).*/\1/p' system/controlDict)
+echo "==========================================================================================="
+echo "solver end time: $solverend"
+# ============ 循环求解算例中所有时间刻 ===========
+for folderpath in "$filepath"/*/
 do
-    #if test -f $folderpath
-    #then
-    #    echo $folderpath 是文件
-    #fi
-    if test -d $folderpath
-    then
-        #echo $folderpath 是目录
-        meshpath=$filepath/constant/polyMesh
-        pointspath=$folderpath/polyMesh/points
-        cp -f $filepath/system/decomposeParDict system/
-        echo "Laplacian solver begin for $folderpath ----------------------"
-        # solver for x dimension ==========================================
+    # 去掉末尾的 /，提取纯文件夹名
+    folder="${folderpath%/}"
+    foldername="${folder##*/}"
+    # 跳过包含非法字符的文件夹名（只允许数字和小数点）
+    case "$foldername" in
+        0)         continue ;;   # 跳过 0 文件夹
+        *[!0-9.]*) continue ;;   # 含非数字、非小数点字符则跳过
+        *..*)      continue ;;   # 含多个连续小数点则跳过
+        .*|*.)     continue ;;   # 以点开头或结尾则跳过
+    esac
+    counti=$((counti + 1))
+    echo "==========================================================================================="
+    meshpath=$filepath/constant/polyMesh
+    pointspath=$folderpath/polyMesh/points
+    cp -f $filepath/system/decomposeParDict system/
+    echo "Laplacian solver begin for $folderpath"
+    if [ "$solveX" -eq 1 ]; then
+        echo "solver for x dimension --------------------------------------------------------------------"
         ./Allclean
-        cp -f 0.orig/bakups/T_x 0.orig/T
+        mkdir -p 0/
+        cp -f 0.orig/T_x 0/T
         cp -r -f $meshpath constant/
         cp -f $pointspath constant/polyMesh/
         ./Allrun
         cp -f $solverend/T $folderpath/Tx
-        # solver for y dimension ==========================================
+    fi
+    if [ "$solveY" -eq 1 ]; then
+        echo "solver for y dimension --------------------------------------------------------------------"
         ./Allclean
-        cp -f 0.orig/bakups/T_y 0.orig/T
+        mkdir -p 0/
+        cp -f 0.orig/T_y 0/T
         cp -r -f $meshpath constant/
         cp -f $pointspath constant/polyMesh/
         ./Allrun
         cp -f $solverend/T $folderpath/Ty
-        # solver for z dimension ==========================================
-        #./Allclean
-        #cp -f 0.orig/bakups/T_z 0.orig/T
-        #cp -r -f $meshpath constant/
-        #cp -f $pointspath constant/polyMesh/
-        #./Allrun
-        #cp -f $solverend/T $folderpath/Tz
-        echo "Laplacian solver end for $folderpath ------------------------"
+    fi
+    if [ "$solveZ" -eq 1 ]; then
+        echo "solver for z dimension --------------------------------------------------------------------"
+        ./Allclean
+        mkdir -p 0/
+        cp -f 0.orig/T_z 0/T
+        cp -r -f $meshpath constant/
+        cp -f $pointspath constant/polyMesh/
+        ./Allrun
+        cp -f $solverend/T $folderpath/Tz
     fi
 done
+
+echo "==========================================================================================="
+echo "Total folders processed: $counti"
+echo "==========================================================================================="
 
 #------------------------------------------------------------------------------
