@@ -27,6 +27,7 @@ echo "==========================================================================
 echo "solver end time: $solverend"
 # ============ 循环求解算例中所有时间刻 ===========
 for folderpath in "$filepath"/*/
+# for folderpath in $filepath/100 # 只计算单个时间刻
 do
     # 去掉末尾的 /，提取纯文件夹名
     folder="${folderpath%/}"
