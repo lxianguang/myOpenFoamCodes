@@ -1,8 +1,20 @@
 #!/bin/sh
 #------------------------------------------------------------------------------
+#
+# laplacianSolver: 对所有时间刻逐层求解 x/y/z 三个方向的 Laplacian 方程
+#
+#   读取 filepath 下每个纯数字/小数时间梯度目录，
+#   复制相应网格和边界条件，按方向（Tx/Ty/Tz）分别求解，
+#   将结果（T）写回各时间目录下（Tx/Ty/Tz）。
+#
+# 控制:
+#   solveX / solveY / solveZ = 1（开启）或 0（关闭）
+#   endTime 从 system/controlDict 自动读取
+#
+#------------------------------------------------------------------------------
 
 # ============== 需要求解的算例目录 ==============
-filepath="../Re1000Std1.00AoA10Phi0.00-c"
+filepath="../Re1000Std1.00AoA10Phi0.00"
 # ========= 求解方向开关（1=开启，0=关闭）=========
 solveX=1
 solveY=1
@@ -36,7 +48,7 @@ do
         echo "solver for x dimension --------------------------------------------------------------------"
         ./Allclean
         mkdir -p 0/
-        cp -f 0.orig/T_x 0/T
+        cp -f 0.orig/Tx 0/T
         cp -r -f $meshpath constant/
         cp -f $pointspath constant/polyMesh/
         ./Allrun
@@ -46,7 +58,7 @@ do
         echo "solver for y dimension --------------------------------------------------------------------"
         ./Allclean
         mkdir -p 0/
-        cp -f 0.orig/T_y 0/T
+        cp -f 0.orig/Ty 0/T
         cp -r -f $meshpath constant/
         cp -f $pointspath constant/polyMesh/
         ./Allrun
@@ -56,7 +68,7 @@ do
         echo "solver for z dimension --------------------------------------------------------------------"
         ./Allclean
         mkdir -p 0/
-        cp -f 0.orig/T_z 0/T
+        cp -f 0.orig/Tz 0/T
         cp -r -f $meshpath constant/
         cp -f $pointspath constant/polyMesh/
         ./Allrun

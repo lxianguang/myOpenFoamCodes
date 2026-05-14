@@ -1,0 +1,114 @@
+#!/bin/bash
+#------------------------------------------------------------------------------
+#
+# setBoundaries: 从 constant/polyMesh/boundary 生成 Tx, Ty, Tz 三个边界文件
+#
+# 规则： wall -> myFixedGradient
+#       patch -> fixedValue uniform 0
+#       其余(empty/symmetry等) -> 保持原类型不变
+#------------------------------------------------------------------------------
+
+# ================= 源算例路径（从 laplacianSolver 读取）=================
+filepath=$(sed -n 's/^filepath="\(.*\)".*/\1/p' laplacianSolver)
+boundaryPath="$filepath/constant/polyMesh/boundary"
+
+# ============== 生成 Tx, Ty, Tz ==============
+mkdir -p 0.orig
+for i in "x (-1 0 0)" "y (0 -1 0)" "z (0 0 -1)"; do
+    read -r dirName dirVec <<< "$i"
+    outFile="0.orig/T${dirName}"
+    echo "Generating $outFile from $boundaryPath"
+
+    tmpFile=$(mktemp /tmp/T${dirName}.XXXXXX)
+    awk -v dirVec="$dirVec" -v dirName="$dirName" '
+# ----------------- 解析规则 ------------------
+#   上一行（遇到 { 时）→ patch 名称
+#   下一行（遇到 { 后）→ patch 类型
+BEGIN {
+    state = 0          # 0=找patch总数, 1=找"(", 2=解析列表
+    idx = 0            # patch 计数器
+    prevLine = ""      # 上一行内容缓存
+    nextIsType = 0     # 下一行是否为 type 行
+}
+
+state == 0 && /^[0-9]+$/ { patchCount = $1; state = 1; next }
+state == 1 && /^\($/     { state = 2; next }
+
+state == 2 {
+    if (/^\)$/) { state = 3; next }
+
+    # 遇到 { → 上一行是 patch 名称
+    if (/\{/) {
+        idx++
+        nameLine = prevLine
+        gsub(/^[[:space:]]*/, "", nameLine)
+        gsub(/[[:space:]]*$/, "", nameLine)
+        patchName[idx] = nameLine
+        nextIsType = 1
+    }
+    # { 的下一行 → 提取 type
+    else if (nextIsType) {
+        patchType[idx] = $2
+        gsub(/;/, "", patchType[idx])
+        nextIsType = 0
+    }
+
+    prevLine = $0
+}
+
+# ----------------- 输出文件 ------------------
+END {
+    if (idx != patchCount) {
+        printf "Error: parsed %d patches, but boundary file declares %d\n", idx, patchCount > "/dev/stderr"
+        exit 1
+    }
+    print "/*--------------------------------*- C++ -*----------------------------------*\\"
+    print "| =========                 |                                                 |"
+    print "| \\\\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |"
+    print "|  \\\\    /   O peration     | Version:  v2306                                 |"
+    print "|   \\\\  /    A nd           | Website:  www.openfoam.com                      |"
+    print "|    \\\\/     M anipulation  |                                                 |"
+    print "\\*---------------------------------------------------------------------------*/"
+    print "FoamFile"
+    print "{"
+    print "    version     2.0;"
+    print "    format      ascii;"
+    print "    class       volScalarField;"
+    print "    object      T;"
+    print "}"
+    print "// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //"
+    print ""
+    print "dimensions      [0 0 0 1 0 0 0];"
+    print ""
+    print "internalField   uniform 0;"
+    print ""
+    print "boundaryField"
+    print "{"
+
+    for (i = 1; i <= idx; i++) {
+        printf "    %s\n    {\n", patchName[i]
+
+        if (patchType[i] == "wall") {
+            printf "        type            myFixedGradient;\n"
+            printf "        direction       %s;\n", dirVec
+        }
+        else if (patchType[i] == "patch") {
+            printf "        type            fixedValue;\n"
+            printf "        value           uniform 0;\n"
+        }
+        else {
+            printf "        type            %s;\n", patchType[i]
+        }
+
+        print  "    }"
+        print  ""
+    }
+
+    print  "}"
+    print  ""
+    print  "// ************************************************************************* //"
+}
+' "$boundaryPath" > "$outFile"
+done
+
+#------------------------------------------------------------------------------
