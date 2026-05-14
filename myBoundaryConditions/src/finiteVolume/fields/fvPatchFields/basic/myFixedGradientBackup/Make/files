@@ -1,0 +1,3 @@
+myFixedGradientFvPatchScalarField.C
+
+LIB = $(FOAM_USER_LIBBIN)/libmyFixedGradient
